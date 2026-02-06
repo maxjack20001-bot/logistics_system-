@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import create_engine, Column, Integer, String, or_
+from sqlalchemy import create_engine, Column, Integer, String, or_, case
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 
@@ -52,6 +52,7 @@ Base.metadata.create_all(bind=engine)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
+    # SEARCH
     if search:
         items = db.query(Item).filter(
             or_(
@@ -70,27 +71,48 @@ def read_inventory(request: Request, search: str = ""):
 
     for item in items:
 
+        # SORT MOVEMENTS:
+        # 1️⃣ INBOUND first
+        # 2️⃣ then OUTBOUND
+        # 3️⃣ newest first inside each group
+
+        movements = db.query(Movement).filter(
+            Movement.item_id == item.id
+        ).order_by(
+            case(
+                (Movement.type == "INBOUND", 0),
+                else_=1
+            ),
+            Movement.id.desc()
+        ).all()
+
+        # LAST IN
         last_in = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "INBOUND"
         ).order_by(Movement.id.desc()).first()
 
+        # LAST OUT
         last_out = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "OUTBOUND"
         ).order_by(Movement.id.desc()).first()
 
-        movements = db.query(Movement).filter(
-            Movement.item_id == item.id
-        ).order_by(Movement.id.desc()).all()
+        # REAL TOTALS (not just last)
+        item_total_in = db.query(Movement).filter(
+            Movement.item_id == item.id,
+            Movement.type == "INBOUND"
+        ).all()
+
+        item_total_out = db.query(Movement).filter(
+            Movement.item_id == item.id,
+            Movement.type == "OUTBOUND"
+        ).all()
 
         total_quantity += item.quantity
 
-        if last_in:
-            total_in += last_in.quantity
-
-        if last_out:
-            total_out += last_out.quantity
+        total_in += sum(m.quantity for m in item_total_in)
+        total_out += sum(m.quantity for m in item_total_out)
 
         inventory_data.append({
             "item": item,
@@ -114,7 +136,7 @@ def read_inventory(request: Request, search: str = ""):
     })
 
 
-# ---------------- CRUD ---------------- #
+# ---------------- ADD ITEM ---------------- #
 
 @app.post("/add")
 def add_item(
@@ -128,6 +150,8 @@ def add_item(
     db.close()
     return RedirectResponse("/", status_code=303)
 
+
+# ---------------- EDIT ---------------- #
 
 @app.get("/edit/{item_id}", response_class=HTMLResponse)
 def edit_page(request: Request, item_id: int):
@@ -156,6 +180,8 @@ def update_item(
     db.close()
     return RedirectResponse("/", status_code=303)
 
+
+# ---------------- DELETE ---------------- #
 
 @app.post("/delete/{item_id}")
 def delete_item(item_id: int):
