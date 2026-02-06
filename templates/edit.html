@@ -7,61 +7,30 @@
 <body class="bg-light">
 
 <div class="container mt-5">
-
     <div class="card shadow p-4">
-        <h2 class="mb-4">✏️ Edit Inventory Item</h2>
-
-        <!-- ITEM INFO -->
-        <div class="mb-3">
-            <label class="form-label fw-bold">Item ID</label>
-            <input type="text" value="{{ item.id }}" class="form-control" disabled>
-        </div>
+        <h2>Edit Item</h2>
 
         <form action="/update/{{ item.id }}" method="post">
-
             <div class="mb-3">
-                <label class="form-label">SKU</label>
-                <input type="text"
-                       name="sku"
-                       value="{{ item.sku }}"
-                       class="form-control"
-                       required>
+                <label>SKU</label>
+                <input type="text" name="sku" value="{{ item.sku }}" class="form-control" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Description</label>
-                <input type="text"
-                       name="description"
-                       value="{{ item.description }}"
-                       class="form-control"
-                       required>
+                <label>Description</label>
+                <input type="text" name="description" value="{{ item.description }}" class="form-control" required>
             </div>
 
-            <div class="mb-4">
-                <label class="form-label">Current Quantity</label>
-                <input type="number"
-                       name="quantity"
-                       value="{{ item.quantity }}"
-                       class="form-control"
-                       required>
-                <div class="form-text">
-                    ⚠ Editing quantity here directly overrides stock value.
-                </div>
+            <div class="mb-3">
+                <label>Quantity</label>
+                <input type="number" name="quantity" value="{{ item.quantity }}" class="form-control" required>
             </div>
 
-            <div class="d-flex justify-content-between">
-                <a href="/" class="btn btn-outline-secondary">
-                    ← Back to Dashboard
-                </a>
-
-                <button type="submit" class="btn btn-success">
-                    Update Item
-                </button>
-            </div>
-
+            <button class="btn btn-success">Update</button>
+            <a href="/" class="btn btn-secondary">Cancel</a>
         </form>
-    </div>
 
+    </div>
 </div>
 
 </body>
