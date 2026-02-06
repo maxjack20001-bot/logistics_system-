@@ -1,25 +1,63 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Logistics Dashboard</title>
+    <title>Inventory Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>Inventory Dashboard</h1>
+<body class="bg-light">
 
-    <form action="/add" method="post">
-        <input type="text" name="sku" placeholder="SKU" required>
-        <input type="text" name="description" placeholder="Description" required>
-        <input type="number" name="quantity" placeholder="Quantity" required>
-        <button type="submit">Add Item</button>
-    </form>
+<div class="container mt-5">
 
-    <h2>Current Inventory</h2>
-    <ul>
-        {% for item in items %}
-            <li>{{ item[1] }} - {{ item[2] }} (Qty: {{ item[3] }})</li>
-        {% endfor %}
-    </ul>
+    <div class="card shadow p-4">
+        <h1 class="mb-4 text-center">📦 Inventory Dashboard</h1>
+
+        <form action="/add" method="post" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="sku" class="form-control" placeholder="SKU" required>
+            </div>
+            <div class="col-md-5">
+                <input type="text" name="description" class="form-control" placeholder="Description" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="quantity" class="form-control" placeholder="Qty" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Add Item</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card shadow mt-4 p-4">
+        <h3>Current Inventory</h3>
+
+        <table class="table table-striped mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>SKU</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in inventory %}
+                <tr>
+                    <td>{{ item.sku }}</td>
+                    <td>{{ item.description }}</td>
+                    <td>
+                        {% if item.quantity < 10 %}
+                            <span class="badge bg-danger">{{ item.quantity }}</span>
+                        {% else %}
+                            <span class="badge bg-success">{{ item.quantity }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
 
 </body>
 </html>
