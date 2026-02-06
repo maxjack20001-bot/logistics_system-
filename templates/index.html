@@ -1,1 +1,25 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logistics Dashboard</title>
+</head>
+<body>
+    <h1>Inventory Dashboard</h1>
+
+    <form action="/add" method="post">
+        <input type="text" name="sku" placeholder="SKU" required>
+        <input type="text" name="description" placeholder="Description" required>
+        <input type="number" name="quantity" placeholder="Quantity" required>
+        <button type="submit">Add Item</button>
+    </form>
+
+    <h2>Current Inventory</h2>
+    <ul>
+        {% for item in items %}
+            <li>{{ item[1] }} - {{ item[2] }} (Qty: {{ item[3] }})</li>
+        {% endfor %}
+    </ul>
+
+</body>
+</html>
