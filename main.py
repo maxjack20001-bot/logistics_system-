@@ -43,4 +43,4 @@ def add_item(sku: str = Form(...), description: str = Form(...), quantity: int =
     conn.commit()
     conn.close()
     return RedirectResponse("/", status_code=303)
-Added dashboard UI
+    
