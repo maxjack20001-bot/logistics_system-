@@ -1,161 +1,248 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Warehouse Inventory</title>
+    <title>Inventory Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-light">
 
 <div class="container mt-5">
 
-    <h1 class="mb-4">🏭 Warehouse Inventory System</h1>
+    <!-- HEADER -->
+    <div class="card shadow p-4">
+        <h1 class="text-center mb-3">📦 Inventory Management System</h1>
 
-    <!-- ADD ITEM -->
-    <div class="card p-4 mb-4 shadow">
-        <h4>Add New Item</h4>
-        <form action="/add" method="post" class="row g-3">
-            <div class="col-md-4">
-                <input type="text" name="sku" placeholder="SKU" class="form-control" required>
-            </div>
-            <div class="col-md-6">
-                <input type="text" name="description" placeholder="Description" class="form-control" required>
+        <!-- LOW STOCK -->
+        <div class="alert alert-warning text-center">
+            Low Stock Items (&lt;10 units):
+            <strong>{{ low_stock_count }}</strong>
+        </div>
+
+        <!-- SEARCH -->
+        <form method="get" action="/" class="row mb-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control"
+                       placeholder="Search by SKU or Description"
+                       value="{{ search }}">
             </div>
             <div class="col-md-2">
-                <button class="btn btn-success w-100">Add Item</button>
+                <button class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+
+        <!-- ADD ITEM -->
+        <h5>Add New Item</h5>
+        <form action="/add" method="post" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="sku" class="form-control" placeholder="SKU" required>
+            </div>
+            <div class="col-md-5">
+                <input type="text" name="description" class="form-control" placeholder="Description" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="quantity" class="form-control" placeholder="Quantity" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">
+                    Add Item
+                </button>
             </div>
         </form>
     </div>
 
-    <!-- INVENTORY TABLE -->
-    <div class="card p-4 shadow">
-        <h4 class="mb-3">Current Inventory</h4>
 
-        <table class="table table-bordered align-middle">
-            <thead class="table-dark">
+    <!-- INVENTORY TABLE -->
+    <div class="card shadow mt-4 p-4">
+        <h3>Current Inventory</h3>
+
+        <!-- Scrollable Wrapper -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped mt-3 align-middle">
+                <thead class="table-dark text-center">
                 <tr>
                     <th>ID</th>
                     <th>SKU</th>
                     <th>Description</th>
-                    <th>Total Qty</th>
-                    <th>Bin Stock</th>
+                    <th>Quantity</th>
+
+                    <th class="bg-success text-white">IN Date</th>
+                    <th class="bg-success text-white">Supplier</th>
+                    <th class="bg-success text-white">IN Qty</th>
+
+                    <th class="bg-secondary text-white">OUT Date</th>
+                    <th class="bg-secondary text-white">Customer</th>
+                    <th class="bg-secondary text-white">OUT Qty</th>
+
                     <th>Actions</th>
                 </tr>
-            </thead>
-            <tbody>
-            {% for row in inventory %}
-                <tr>
-                    <td>{{ row.item.id }}</td>
-                    <td>{{ row.item.sku }}</td>
-                    <td>{{ row.item.description }}</td>
+                </thead>
+
+                <tbody>
+                {% set total_stock = 0 %}
+                {% set total_in = 0 %}
+                {% set total_out = 0 %}
+
+                {% for row in inventory %}
+                {% set item = row.item %}
+                {% set total_stock = total_stock + item.quantity %}
+
+                <tr class="text-center">
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.sku }}</td>
+                    <td>{{ item.description }}</td>
+
                     <td>
-                        <span class="badge bg-primary">
-                            {{ row.total_quantity }}
-                        </span>
+                        {% if item.quantity < 10 %}
+                            <span class="badge bg-danger">{{ item.quantity }}</span>
+                        {% else %}
+                            <span class="badge bg-success">{{ item.quantity }}</span>
+                        {% endif %}
                     </td>
 
-                    <!-- BIN STOCK DISPLAY -->
-                    <td>
-                        {% for stock in row.stocks %}
-                            <div>
-                                Bin {{ stock.location_id }} :
-                                <strong>{{ stock.quantity }}</strong>
-                            </div>
+                    <!-- IN -->
+                    <td class="bg-success bg-opacity-10">
+                        {{ row.last_in.date if row.last_in else "-" }}
+                    </td>
+                    <td class="bg-success bg-opacity-10">
+                        {{ row.last_in.partner if row.last_in else "-" }}
+                    </td>
+                    <td class="bg-success bg-opacity-10">
+                        {% if row.last_in %}
+                            {% set total_in = total_in + row.last_in.quantity %}
+                            <span class="badge bg-success">
+                                +{{ row.last_in.quantity }}
+                            </span>
                         {% else %}
-                            <small class="text-muted">No stock yet</small>
-                        {% endfor %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <!-- OUT -->
+                    <td class="bg-secondary bg-opacity-10">
+                        {{ row.last_out.date if row.last_out else "-" }}
+                    </td>
+                    <td class="bg-secondary bg-opacity-10">
+                        {{ row.last_out.partner if row.last_out else "-" }}
+                    </td>
+                    <td class="bg-secondary bg-opacity-10">
+                        {% if row.last_out %}
+                            {% set total_out = total_out + row.last_out.quantity %}
+                            <span class="badge bg-dark">
+                                -{{ row.last_out.quantity }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
                     </td>
 
                     <!-- ACTIONS -->
                     <td>
 
+                        <button class="btn btn-info btn-sm mb-2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#historyModal{{ item.id }}">
+                            History
+                        </button>
+
                         <!-- INBOUND -->
-                        <form action="/inbound/{{ row.item.id }}" method="post" class="mb-2">
-                            <div class="row g-1">
-                                <div class="col">
-                                    <select name="location_id" class="form-select" required>
-                                        {% for loc in locations %}
-                                            <option value="{{ loc.id }}">
-                                                {{ loc.storage_type }} - {{ loc.bin_name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="quantity" placeholder="Qty" class="form-control" required>
-                                </div>
-                                <div class="col">
-                                    <input type="text" name="partner" placeholder="Supplier" class="form-control" required>
-                                </div>
-                                <div class="col">
-                                    <button class="btn btn-success btn-sm">IN</button>
-                                </div>
-                            </div>
+                        <form action="/inbound/{{ item.id }}"
+                              method="post"
+                              class="d-flex gap-1 mb-1">
+                            <input type="number" name="quantity"
+                                   class="form-control form-control-sm"
+                                   placeholder="Qty" required>
+                            <input type="text" name="partner"
+                                   class="form-control form-control-sm"
+                                   placeholder="Supplier" required>
+                            <button class="btn btn-success btn-sm">IN</button>
                         </form>
 
                         <!-- OUTBOUND -->
-                        <form action="/outbound/{{ row.item.id }}" method="post">
-                            <div class="row g-1">
-                                <div class="col">
-                                    <select name="location_id" class="form-select" required>
-                                        {% for loc in locations %}
-                                            <option value="{{ loc.id }}">
-                                                {{ loc.storage_type }} - {{ loc.bin_name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="quantity" placeholder="Qty" class="form-control" required>
-                                </div>
-                                <div class="col">
-                                    <input type="text" name="partner" placeholder="Customer" class="form-control" required>
-                                </div>
-                                <div class="col">
-                                    <button class="btn btn-dark btn-sm">OUT</button>
-                                </div>
-                            </div>
+                        <form action="/outbound/{{ item.id }}"
+                              method="post"
+                              class="d-flex gap-1">
+                            <input type="number" name="quantity"
+                                   class="form-control form-control-sm"
+                                   placeholder="Qty" required>
+                            <input type="text" name="partner"
+                                   class="form-control form-control-sm"
+                                   placeholder="Customer" required>
+                            <button class="btn btn-dark btn-sm">OUT</button>
                         </form>
-
-                        <!-- MOVEMENT HISTORY -->
-                        <div class="mt-3">
-                            <strong>History:</strong>
-                            <table class="table table-sm table-bordered mt-2">
-                                <thead class="table-secondary">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Type</th>
-                                        <th>Partner</th>
-                                        <th>Qty</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for m in row.movements %}
-                                    <tr>
-                                        <td>{{ m.date }}</td>
-                                        <td>
-                                            {% if m.type == "INBOUND" %}
-                                                <span class="badge bg-success">IN</span>
-                                            {% else %}
-                                                <span class="badge bg-dark">OUT</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ m.partner }}</td>
-                                        <td>{{ m.quantity }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
 
                     </td>
                 </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                {% endfor %}
 
+                <!-- TOTAL ROW -->
+                <tr class="fw-bold text-center table-warning">
+                    <td colspan="3">TOTAL</td>
+                    <td>{{ total_stock }}</td>
+                    <td colspan="2"></td>
+                    <td>+{{ total_in }}</td>
+                    <td colspan="2"></td>
+                    <td>-{{ total_out }}</td>
+                    <td></td>
+                </tr>
+
+                </tbody>
+            </table>
+        </div>
     </div>
-
 </div>
 
+
+<!-- MODALS (OUTSIDE TABLE — IMPORTANT) -->
+{% for row in inventory %}
+{% set item = row.item %}
+<div class="modal fade" id="historyModal{{ item.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Movement History - {{ item.sku }}
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Partner</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in row.movements %}
+                        <tr>
+                            <td>{{ m.date }}</td>
+                            <td>
+                                {% if m.type == "INBOUND" %}
+                                    <span class="badge bg-success">IN</span>
+                                {% else %}
+                                    <span class="badge bg-dark">OUT</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ m.partner }}</td>
+                            <td>{{ m.quantity }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
