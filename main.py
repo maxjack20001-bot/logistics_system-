@@ -46,3 +46,14 @@ def add_item(sku: str = Form(...), description: str = Form(...), quantity: int =
     db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
+
+@app.post("/delete/{item_id}")
+def delete_item(item_id: int):
+    db = SessionLocal()
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if item:
+        db.delete(item)
+        db.commit()
+    db.close()
+    return RedirectResponse("/", status_code=303)
+
