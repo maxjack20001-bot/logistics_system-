@@ -32,12 +32,13 @@
 
         <table class="table table-striped mt-3">
             <thead class="table-dark">
-                <tr>
-                    <th>SKU</th>
-                    <th>Description</th>
-                    <th>Quantity</th>
-                </tr>
-            </thead>
+    <tr>
+        <th>SKU</th>
+        <th>Description</th>
+        <th>Quantity</th>
+        <th>Actions</th>
+    </tr>
+</thead>
             <tbody>
                 {% for item in inventory %}
                 <tr>
@@ -45,10 +46,16 @@
                     <td>{{ item.description }}</td>
                     <td>
                         {% if item.quantity < 10 %}
-                            <span class="badge bg-danger">{{ item.quantity }}</span>
-                        {% else %}
-                            <span class="badge bg-success">{{ item.quantity }}</span>
-                        {% endif %}
+            <span class="badge bg-danger">{{ item.quantity }}</span>
+        {% else %}
+            <span class="badge bg-success">{{ item.quantity }}</span>
+        {% endif %}
+    </td>
+
+    <td>
+        <form action="/delete/{{ item.id }}" method="post" style="display:inline;">
+            <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
                     </td>
                 </tr>
                 {% endfor %}
@@ -61,3 +68,7 @@
 
 </body>
 </html>
+
+
+
+
