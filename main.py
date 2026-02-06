@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import create_engine, Column, Integer, String, or_, case
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 
@@ -18,8 +18,9 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-
-# ---------------- MODELS ---------------- #
+# ==========================================================
+# MODELS
+# ==========================================================
 
 class Item(Base):
     __tablename__ = "items"
@@ -27,23 +28,7 @@ class Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     sku = Column(String, index=True)
     description = Column(String)
-    quantity = Column(Integer)
 
-
-class Movement(Base):
-    __tablename__ = "movements"
-
-    id = Column(Integer, primary_key=True, index=True)
-    item_id = Column(Integer)
-    type = Column(String)  # INBOUND / OUTBOUND
-    quantity = Column(Integer)
-    partner = Column(String)
-    date = Column(String, default=lambda:
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
-
-
-# ---------------- LOCATION TABLE ---------------- #
 
 class Location(Base):
     __tablename__ = "locations"
@@ -53,211 +38,177 @@ class Location(Base):
     bin_name = Column(String)       # A1, FZ-01, etc
 
 
-# ---------------- STOCK TABLE ---------------- #
-
 class Stock(Base):
     __tablename__ = "stock"
 
     id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, ForeignKey("items.id"))
+    location_id = Column(Integer, ForeignKey("locations.id"))
+    quantity = Column(Integer, default=0)
+
+
+class Movement(Base):
+    __tablename__ = "movements"
+
+    id = Column(Integer, primary_key=True, index=True)
     item_id = Column(Integer)
     location_id = Column(Integer)
-    quantity = Column(Integer, default=0)
+    type = Column(String)  # INBOUND / OUTBOUND
+    quantity = Column(Integer)
+    partner = Column(String)
+    date = Column(String, default=lambda:
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
 
 
 Base.metadata.create_all(bind=engine)
 
-# ---------------- HOME ---------------- #
+# ==========================================================
+# INIT LOCATIONS (RUN ONCE)
+# ==========================================================
 
-@app.get("/", response_class=HTMLResponse)
-def read_inventory(request: Request, search: str = ""):
+@app.get("/init-locations")
+def init_locations():
     db = SessionLocal()
 
-    # SEARCH
-    if search:
-        items = db.query(Item).filter(
-            or_(
-                Item.sku.contains(search),
-                Item.description.contains(search)
-            )
-        ).all()
-    else:
-        items = db.query(Item).all()
+    if db.query(Location).count() == 0:
+        locations = [
+            Location(storage_type="Chiller", bin_name="CH-01"),
+            Location(storage_type="Freezer", bin_name="FZ-01"),
+            Location(storage_type="Dry", bin_name="DR-01"),
+            Location(storage_type="Ambient", bin_name="AM-01"),
+        ]
+        db.add_all(locations)
+        db.commit()
+
+    db.close()
+    return {"message": "Locations created"}
+
+# ==========================================================
+# HOME
+# ==========================================================
+
+@app.get("/", response_class=HTMLResponse)
+def read_inventory(request: Request):
+    db = SessionLocal()
+
+    items = db.query(Item).all()
+    locations = db.query(Location).all()
 
     inventory_data = []
 
-    total_quantity = 0
-    total_in = 0
-    total_out = 0
-
     for item in items:
 
-        # SORT MOVEMENTS:
-        # 1️⃣ INBOUND first
-        # 2️⃣ then OUTBOUND
-        # 3️⃣ newest first inside each group
+        # Calculate total quantity across all bins
+        stocks = db.query(Stock).filter(Stock.item_id == item.id).all()
+        total_quantity = sum(s.quantity for s in stocks)
 
         movements = db.query(Movement).filter(
             Movement.item_id == item.id
-        ).order_by(
-            case(
-                (Movement.type == "INBOUND", 0),
-                else_=1
-            ),
-            Movement.id.desc()
-        ).all()
-
-        # LAST IN
-        last_in = db.query(Movement).filter(
-            Movement.item_id == item.id,
-            Movement.type == "INBOUND"
-        ).order_by(Movement.id.desc()).first()
-
-        # LAST OUT
-        last_out = db.query(Movement).filter(
-            Movement.item_id == item.id,
-            Movement.type == "OUTBOUND"
-        ).order_by(Movement.id.desc()).first()
-
-        # REAL TOTALS (not just last)
-        item_total_in = db.query(Movement).filter(
-            Movement.item_id == item.id,
-            Movement.type == "INBOUND"
-        ).all()
-
-        item_total_out = db.query(Movement).filter(
-            Movement.item_id == item.id,
-            Movement.type == "OUTBOUND"
-        ).all()
-
-        total_quantity += item.quantity
-
-        total_in += sum(m.quantity for m in item_total_in)
-        total_out += sum(m.quantity for m in item_total_out)
+        ).order_by(Movement.id.desc()).all()
 
         inventory_data.append({
             "item": item,
-            "last_in": last_in,
-            "last_out": last_out,
+            "total_quantity": total_quantity,
+            "stocks": stocks,
             "movements": movements
         })
-
-    low_stock_count = db.query(Item).filter(Item.quantity < 10).count()
 
     db.close()
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "inventory": inventory_data,
-        "low_stock_count": low_stock_count,
-        "search": search,
-        "total_quantity": total_quantity,
-        "total_in": total_in,
-        "total_out": total_out
+        "locations": locations
     })
 
-
-# ---------------- ADD ITEM ---------------- #
+# ==========================================================
+# ADD ITEM
+# ==========================================================
 
 @app.post("/add")
 def add_item(
     sku: str = Form(...),
-    description: str = Form(...),
-    quantity: int = Form(...)
+    description: str = Form(...)
 ):
     db = SessionLocal()
-    db.add(Item(sku=sku, description=description, quantity=quantity))
+    db.add(Item(sku=sku, description=description))
     db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
 
-
-# ---------------- EDIT ---------------- #
-
-@app.get("/edit/{item_id}", response_class=HTMLResponse)
-def edit_page(request: Request, item_id: int):
-    db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
-    db.close()
-    return templates.TemplateResponse("edit.html", {"request": request, "item": item})
-
-
-@app.post("/update/{item_id}")
-def update_item(
-    item_id: int,
-    sku: str = Form(...),
-    description: str = Form(...),
-    quantity: int = Form(...)
-):
-    db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
-
-    if item:
-        item.sku = sku
-        item.description = description
-        item.quantity = quantity
-        db.commit()
-
-    db.close()
-    return RedirectResponse("/", status_code=303)
-
-
-# ---------------- DELETE ---------------- #
-
-@app.post("/delete/{item_id}")
-def delete_item(item_id: int):
-    db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
-    if item:
-        db.delete(item)
-        db.commit()
-    db.close()
-    return RedirectResponse("/", status_code=303)
-
-
-# ---------------- INBOUND ---------------- #
+# ==========================================================
+# INBOUND (WITH LOCATION)
+# ==========================================================
 
 @app.post("/inbound/{item_id}")
 def inbound(
     item_id: int,
+    location_id: int = Form(...),
     quantity: int = Form(...),
     partner: str = Form(...)
 ):
     db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
 
-    if item and quantity > 0:
-        item.quantity += quantity
+    if quantity > 0:
+        stock = db.query(Stock).filter(
+            Stock.item_id == item_id,
+            Stock.location_id == location_id
+        ).first()
+
+        if not stock:
+            stock = Stock(
+                item_id=item_id,
+                location_id=location_id,
+                quantity=0
+            )
+            db.add(stock)
+
+        stock.quantity += quantity
+
         db.add(Movement(
             item_id=item_id,
+            location_id=location_id,
             type="INBOUND",
             quantity=quantity,
             partner=partner
         ))
+
         db.commit()
 
     db.close()
     return RedirectResponse("/", status_code=303)
 
-
-# ---------------- OUTBOUND ---------------- #
+# ==========================================================
+# OUTBOUND (WITH LOCATION)
+# ==========================================================
 
 @app.post("/outbound/{item_id}")
 def outbound(
     item_id: int,
+    location_id: int = Form(...),
     quantity: int = Form(...),
     partner: str = Form(...)
 ):
     db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
 
-    if item and quantity > 0 and item.quantity >= quantity:
-        item.quantity -= quantity
+    stock = db.query(Stock).filter(
+        Stock.item_id == item_id,
+        Stock.location_id == location_id
+    ).first()
+
+    if stock and quantity > 0 and stock.quantity >= quantity:
+
+        stock.quantity -= quantity
+
         db.add(Movement(
             item_id=item_id,
+            location_id=location_id,
             type="OUTBOUND",
             quantity=quantity,
             partner=partner
         ))
+
         db.commit()
 
     db.close()
