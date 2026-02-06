@@ -49,13 +49,13 @@
     <div class="card shadow mt-4 p-4">
         <h3>Current Inventory</h3>
 
-        <table class="table table-striped mt-3">
+        <table class="table table-bordered table-striped mt-3 align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>SKU</th>
                     <th>Description</th>
                     <th>Quantity</th>
-                    <th>Actions</th>
+                    <th style="width: 400px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -71,11 +71,35 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="/edit/{{ item.id }}" class="btn btn-sm btn-warning">Edit</a>
 
+                        <!-- Edit -->
+                        <a href="/edit/{{ item.id }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+
+                        <!-- Delete -->
                         <form action="/delete/{{ item.id }}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            <button type="submit" class="btn btn-sm btn-danger mb-1">Delete</button>
                         </form>
+
+                        <!-- INBOUND FORM -->
+                        <form action="/movement/{{ item.id }}" method="post" class="d-flex gap-1 mt-2">
+                            <input type="hidden" name="movement_type" value="INBOUND">
+                            <input type="number" name="quantity" class="form-control form-control-sm"
+                                   placeholder="Qty" required style="width:80px;">
+                            <input type="text" name="partner" class="form-control form-control-sm"
+                                   placeholder="Supplier" required style="width:120px;">
+                            <button class="btn btn-sm btn-success">IN</button>
+                        </form>
+
+                        <!-- OUTBOUND FORM -->
+                        <form action="/movement/{{ item.id }}" method="post" class="d-flex gap-1 mt-2">
+                            <input type="hidden" name="movement_type" value="OUTBOUND">
+                            <input type="number" name="quantity" class="form-control form-control-sm"
+                                   placeholder="Qty" required style="width:80px;">
+                            <input type="text" name="partner" class="form-control form-control-sm"
+                                   placeholder="Customer" required style="width:120px;">
+                            <button class="btn btn-sm btn-dark">OUT</button>
+                        </form>
+
                     </td>
                 </tr>
                 {% endfor %}
