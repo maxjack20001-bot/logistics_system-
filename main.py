@@ -43,8 +43,28 @@ class Movement(Base):
     )
 
 
-Base.metadata.create_all(bind=engine)
+# ---------------- LOCATION TABLE ---------------- #
 
+class Location(Base):
+    __tablename__ = "locations"
+
+    id = Column(Integer, primary_key=True)
+    storage_type = Column(String)   # Chiller, Freezer, Dry, Ambient
+    bin_name = Column(String)       # A1, FZ-01, etc
+
+
+# ---------------- STOCK TABLE ---------------- #
+
+class Stock(Base):
+    __tablename__ = "stock"
+
+    id = Column(Integer, primary_key=True)
+    item_id = Column(Integer)
+    location_id = Column(Integer)
+    quantity = Column(Integer, default=0)
+
+
+Base.metadata.create_all(bind=engine)
 
 # ---------------- HOME ---------------- #
 
