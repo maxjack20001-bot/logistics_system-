@@ -56,6 +56,7 @@ Base.metadata.create_all(bind=engine)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
+    # SEARCH
     if search:
         items = db.query(Item).filter(
             or_(
@@ -70,22 +71,28 @@ def read_inventory(request: Request, search: str = ""):
 
     for item in items:
 
-        # Last INBOUND
+        # LAST INBOUND
         last_in = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "INBOUND"
         ).order_by(Movement.id.desc()).first()
 
-        # Last OUTBOUND
+        # LAST OUTBOUND
         last_out = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "OUTBOUND"
         ).order_by(Movement.id.desc()).first()
 
+        # FULL MOVEMENT HISTORY (for modal popup)
+        movements = db.query(Movement).filter(
+            Movement.item_id == item.id
+        ).order_by(Movement.id.desc()).all()
+
         inventory_data.append({
             "item": item,
             "last_in": last_in,
-            "last_out": last_out
+            "last_out": last_out,
+            "movements": movements
         })
 
     low_stock_count = db.query(Item).filter(Item.quantity < 10).count()
@@ -111,11 +118,13 @@ def add_item(
     quantity: int = Form(...)
 ):
     db = SessionLocal()
+
     db.add(Item(
         sku=sku,
         description=description,
         quantity=quantity
     ))
+
     db.commit()
     db.close()
 
@@ -150,6 +159,7 @@ def update_item(
     quantity: int = Form(...)
 ):
     db = SessionLocal()
+
     item = db.query(Item).filter(Item.id == item_id).first()
 
     if item:
@@ -169,6 +179,7 @@ def update_item(
 @app.post("/delete/{item_id}")
 def delete_item(item_id: int):
     db = SessionLocal()
+
     item = db.query(Item).filter(Item.id == item_id).first()
 
     if item:
@@ -238,7 +249,7 @@ def outbound(
 
 
 # ------------------------
-# MOVEMENT HISTORY PAGE
+# GLOBAL MOVEMENT HISTORY PAGE
 # ------------------------
 
 @app.get("/movements", response_class=HTMLResponse)
