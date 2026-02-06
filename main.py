@@ -5,7 +5,6 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 app = FastAPI()
-
 templates = Jinja2Templates(directory="templates")
 
 # ------------------------
@@ -32,11 +31,27 @@ Base.metadata.create_all(bind=engine)
 # ------------------------
 
 @app.get("/", response_class=HTMLResponse)
-def read_inventory(request: Request):
+def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
-    items = db.query(Item).all()
+
+    if search:
+        items = db.query(Item).filter(
+            Item.sku.contains(search) | Item.description.contains(search)
+        ).all()
+    else:
+        items = db.query(Item).all()
+
+    low_stock_count = db.query(Item).filter(Item.quantity < 10).count()
+
     db.close()
-    return templates.TemplateResponse("index.html", {"request": request, "inventory": items})
+
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "inventory": items,
+        "low_stock_count": low_stock_count,
+        "search": search
+    })
+
 
 @app.post("/add")
 def add_item(sku: str = Form(...), description: str = Form(...), quantity: int = Form(...)):
@@ -47,6 +62,28 @@ def add_item(sku: str = Form(...), description: str = Form(...), quantity: int =
     db.close()
     return RedirectResponse("/", status_code=303)
 
+
+@app.get("/edit/{item_id}", response_class=HTMLResponse)
+def edit_page(request: Request, item_id: int):
+    db = SessionLocal()
+    item = db.query(Item).filter(Item.id == item_id).first()
+    db.close()
+    return templates.TemplateResponse("edit.html", {"request": request, "item": item})
+
+
+@app.post("/update/{item_id}")
+def update_item(item_id: int, sku: str = Form(...), description: str = Form(...), quantity: int = Form(...)):
+    db = SessionLocal()
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if item:
+        item.sku = sku
+        item.description = description
+        item.quantity = quantity
+        db.commit()
+    db.close()
+    return RedirectResponse("/", status_code=303)
+
+
 @app.post("/delete/{item_id}")
 def delete_item(item_id: int):
     db = SessionLocal()
@@ -56,4 +93,3 @@ def delete_item(item_id: int):
         db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
-
