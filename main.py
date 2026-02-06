@@ -8,10 +8,6 @@ from datetime import datetime
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# ------------------------
-# DATABASE SETUP
-# ------------------------
-
 DATABASE_URL = "sqlite:///./inventory.db"
 
 engine = create_engine(
@@ -22,9 +18,8 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# ------------------------
-# MODELS
-# ------------------------
+
+# ---------------- MODELS ---------------- #
 
 class Item(Base):
     __tablename__ = "items"
@@ -40,23 +35,23 @@ class Movement(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     item_id = Column(Integer)
-    type = Column(String)  # INBOUND or OUTBOUND
+    type = Column(String)  # INBOUND / OUTBOUND
     quantity = Column(Integer)
     partner = Column(String)
-    date = Column(String, default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    date = Column(String, default=lambda:
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
 
 
 Base.metadata.create_all(bind=engine)
 
-# ------------------------
-# HOME / INVENTORY PAGE
-# ------------------------
+
+# ---------------- HOME ---------------- #
 
 @app.get("/", response_class=HTMLResponse)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
-    # SEARCH
     if search:
         items = db.query(Item).filter(
             or_(
@@ -69,24 +64,33 @@ def read_inventory(request: Request, search: str = ""):
 
     inventory_data = []
 
+    total_quantity = 0
+    total_in = 0
+    total_out = 0
+
     for item in items:
 
-        # LAST INBOUND
         last_in = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "INBOUND"
         ).order_by(Movement.id.desc()).first()
 
-        # LAST OUTBOUND
         last_out = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "OUTBOUND"
         ).order_by(Movement.id.desc()).first()
 
-        # FULL MOVEMENT HISTORY (for modal popup)
         movements = db.query(Movement).filter(
             Movement.item_id == item.id
         ).order_by(Movement.id.desc()).all()
+
+        total_quantity += item.quantity
+
+        if last_in:
+            total_in += last_in.quantity
+
+        if last_out:
+            total_out += last_out.quantity
 
         inventory_data.append({
             "item": item,
@@ -103,13 +107,14 @@ def read_inventory(request: Request, search: str = ""):
         "request": request,
         "inventory": inventory_data,
         "low_stock_count": low_stock_count,
-        "search": search
+        "search": search,
+        "total_quantity": total_quantity,
+        "total_in": total_in,
+        "total_out": total_out
     })
 
 
-# ------------------------
-# ADD ITEM
-# ------------------------
+# ---------------- CRUD ---------------- #
 
 @app.post("/add")
 def add_item(
@@ -118,38 +123,19 @@ def add_item(
     quantity: int = Form(...)
 ):
     db = SessionLocal()
-
-    db.add(Item(
-        sku=sku,
-        description=description,
-        quantity=quantity
-    ))
-
+    db.add(Item(sku=sku, description=description, quantity=quantity))
     db.commit()
     db.close()
-
     return RedirectResponse("/", status_code=303)
 
-
-# ------------------------
-# EDIT ITEM PAGE
-# ------------------------
 
 @app.get("/edit/{item_id}", response_class=HTMLResponse)
 def edit_page(request: Request, item_id: int):
     db = SessionLocal()
     item = db.query(Item).filter(Item.id == item_id).first()
     db.close()
+    return templates.TemplateResponse("edit.html", {"request": request, "item": item})
 
-    return templates.TemplateResponse(
-        "edit.html",
-        {"request": request, "item": item}
-    )
-
-
-# ------------------------
-# UPDATE ITEM
-# ------------------------
 
 @app.post("/update/{item_id}")
 def update_item(
@@ -159,7 +145,6 @@ def update_item(
     quantity: int = Form(...)
 ):
     db = SessionLocal()
-
     item = db.query(Item).filter(Item.id == item_id).first()
 
     if item:
@@ -172,27 +157,18 @@ def update_item(
     return RedirectResponse("/", status_code=303)
 
 
-# ------------------------
-# DELETE ITEM
-# ------------------------
-
 @app.post("/delete/{item_id}")
 def delete_item(item_id: int):
     db = SessionLocal()
-
     item = db.query(Item).filter(Item.id == item_id).first()
-
     if item:
         db.delete(item)
         db.commit()
-
     db.close()
     return RedirectResponse("/", status_code=303)
 
 
-# ------------------------
-# INBOUND
-# ------------------------
+# ---------------- INBOUND ---------------- #
 
 @app.post("/inbound/{item_id}")
 def inbound(
@@ -205,23 +181,19 @@ def inbound(
 
     if item and quantity > 0:
         item.quantity += quantity
-
         db.add(Movement(
             item_id=item_id,
             type="INBOUND",
             quantity=quantity,
             partner=partner
         ))
-
         db.commit()
 
     db.close()
     return RedirectResponse("/", status_code=303)
 
 
-# ------------------------
-# OUTBOUND
-# ------------------------
+# ---------------- OUTBOUND ---------------- #
 
 @app.post("/outbound/{item_id}")
 def outbound(
@@ -234,38 +206,13 @@ def outbound(
 
     if item and quantity > 0 and item.quantity >= quantity:
         item.quantity -= quantity
-
         db.add(Movement(
             item_id=item_id,
             type="OUTBOUND",
             quantity=quantity,
             partner=partner
         ))
-
         db.commit()
 
     db.close()
     return RedirectResponse("/", status_code=303)
-
-
-# ------------------------
-# GLOBAL MOVEMENT HISTORY PAGE
-# ------------------------
-
-@app.get("/movements", response_class=HTMLResponse)
-def movement_history(request: Request):
-    db = SessionLocal()
-
-    movements = db.query(Movement).order_by(
-        Movement.id.desc()
-    ).all()
-
-    db.close()
-
-    return templates.TemplateResponse(
-        "movements.html",
-        {
-            "request": request,
-            "movements": movements
-        }
-    )
