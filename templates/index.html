@@ -3,16 +3,29 @@
 <head>
     <title>Inventory Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        .in-column {
+            background-color: #e9f7ef;
+        }
+
+        .out-column {
+            background-color: #f1f1f1;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
-<div class="container mt-5">
+<div class="container-fluid mt-5">
 
-    <!-- HEADER CARD -->
+    <!-- HEADER -->
     <div class="card shadow p-4">
         <h1 class="mb-3 text-center">📦 Inventory Management System</h1>
 
-        <!-- LOW STOCK -->
         <div class="alert alert-warning text-center">
             Low Stock Items (&lt; 10 units):
             <strong>{{ low_stock_count }}</strong>
@@ -34,49 +47,61 @@
         <h5>Add New Item</h5>
         <form action="/add" method="post" class="row g-3">
             <div class="col-md-3">
-                <input type="text" name="sku" class="form-control"
-                       placeholder="SKU" required>
+                <input type="text" name="sku" class="form-control" placeholder="SKU" required>
             </div>
             <div class="col-md-5">
-                <input type="text" name="description" class="form-control"
-                       placeholder="Description" required>
+                <input type="text" name="description" class="form-control" placeholder="Description" required>
             </div>
             <div class="col-md-2">
-                <input type="number" name="quantity" class="form-control"
-                       placeholder="Quantity" required>
+                <input type="number" name="quantity" class="form-control" placeholder="Quantity" required>
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-success w-100">
-                    Add Item
-                </button>
+                <button type="submit" class="btn btn-success w-100">Add Item</button>
             </div>
         </form>
     </div>
-
 
     <!-- INVENTORY TABLE -->
     <div class="card shadow mt-4 p-4">
         <h3>Current Inventory</h3>
 
-        <table class="table table-bordered table-striped mt-3 align-middle">
+        <div class="table-responsive">
+
+        <table class="table table-bordered table-striped mt-3 align-middle text-center">
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
                     <th>SKU</th>
                     <th>Description</th>
                     <th>Quantity</th>
-                    <th>Last IN</th>
-                    <th>Last OUT</th>
-                    <th style="width:350px;">Actions</th>
+
+                    <th class="in-column">IN Date</th>
+                    <th class="in-column">Supplier</th>
+                    <th class="in-column">IN Qty</th>
+
+                    <th class="out-column">OUT Date</th>
+                    <th class="out-column">Customer</th>
+                    <th class="out-column">OUT Qty</th>
+
+                    <th>Actions</th>
                 </tr>
             </thead>
+
             <tbody>
+
+                {% set total_stock = 0 %}
+                {% set total_in = 0 %}
+                {% set total_out = 0 %}
+
                 {% for row in inventory %}
                 {% set item = row.item %}
+                {% set total_stock = total_stock + item.quantity %}
+
                 <tr>
                     <td>{{ item.id }}</td>
                     <td>{{ item.sku }}</td>
                     <td>{{ item.description }}</td>
+
                     <td>
                         {% if item.quantity < 10 %}
                             <span class="badge bg-danger">{{ item.quantity }}</span>
@@ -85,43 +110,58 @@
                         {% endif %}
                     </td>
 
-                    <!-- LAST IN COLUMN -->
-                    <td>
+                    <!-- IN -->
+                    <td class="in-column">
+                        {{ row.last_in.date if row.last_in else "-" }}
+                    </td>
+
+                    <td class="in-column">
+                        {{ row.last_in.partner if row.last_in else "-" }}
+                    </td>
+
+                    <td class="in-column">
                         {% if row.last_in %}
-                            <small>
-                                <strong>Date:</strong> {{ row.last_in.date }}<br>
-                                <strong>Supplier:</strong> {{ row.last_in.partner }}<br>
-                                <strong>Qty:</strong>
-                                <span class="badge bg-success">
-                                    +{{ row.last_in.quantity }}
-                                </span>
-                            </small>
+                            <span class="badge bg-success">
+                                +{{ row.last_in.quantity }}
+                            </span>
+                            {% set total_in = total_in + row.last_in.quantity %}
                         {% else %}
-                            <span class="text-muted">No inbound</span>
+                            -
                         {% endif %}
                     </td>
 
-                    <!-- LAST OUT COLUMN -->
-                    <td>
+                    <!-- OUT -->
+                    <td class="out-column">
+                        {{ row.last_out.date if row.last_out else "-" }}
+                    </td>
+
+                    <td class="out-column">
+                        {{ row.last_out.partner if row.last_out else "-" }}
+                    </td>
+
+                    <td class="out-column">
                         {% if row.last_out %}
-                            <small>
-                                <strong>Date:</strong> {{ row.last_out.date }}<br>
-                                <strong>Customer:</strong> {{ row.last_out.partner }}<br>
-                                <strong>Qty:</strong>
-                                <span class="badge bg-dark">
-                                    -{{ row.last_out.quantity }}
-                                </span>
-                            </small>
+                            <span class="badge bg-dark">
+                                -{{ row.last_out.quantity }}
+                            </span>
+                            {% set total_out = total_out + row.last_out.quantity %}
                         {% else %}
-                            <span class="text-muted">No outbound</span>
+                            -
                         {% endif %}
                     </td>
 
                     <!-- ACTIONS -->
                     <td>
 
+                        <!-- View History Button -->
+                        <button class="btn btn-sm btn-info mb-2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#historyModal{{ item.id }}">
+                            History
+                        </button>
+
                         <!-- 3 DOT DROPDOWN -->
-                        <div class="dropdown text-end mb-2">
+                        <div class="dropdown mb-2">
                             <button class="btn btn-sm btn-secondary dropdown-toggle"
                                     type="button"
                                     data-bs-toggle="dropdown">
@@ -129,16 +169,11 @@
                             </button>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a class="dropdown-item"
-                                       href="/edit/{{ item.id }}">
-                                        Edit
-                                    </a>
+                                    <a class="dropdown-item" href="/edit/{{ item.id }}">Edit</a>
                                 </li>
                                 <li>
-                                    <form action="/delete/{{ item.id }}"
-                                          method="post">
-                                        <button type="submit"
-                                                class="dropdown-item text-danger">
+                                    <form action="/delete/{{ item.id }}" method="post">
+                                        <button type="submit" class="dropdown-item text-danger">
                                             Delete
                                         </button>
                                     </form>
@@ -146,54 +181,91 @@
                             </ul>
                         </div>
 
-                        <!-- INBOUND FORM -->
-                        <form action="/inbound/{{ item.id }}"
-                              method="post"
+                        <!-- IN FORM -->
+                        <form action="/inbound/{{ item.id }}" method="post"
                               class="d-flex gap-1 mb-2">
-                            <input type="number"
-                                   name="quantity"
+                            <input type="number" name="quantity"
                                    class="form-control form-control-sm"
-                                   placeholder="Qty"
-                                   required style="width:80px;">
-                            <input type="text"
-                                   name="partner"
+                                   placeholder="Qty" required style="width:80px;">
+                            <input type="text" name="partner"
                                    class="form-control form-control-sm"
-                                   placeholder="Supplier"
-                                   required style="width:120px;">
-                            <button class="btn btn-sm btn-success">
-                                IN
-                            </button>
+                                   placeholder="Supplier" required style="width:120px;">
+                            <button class="btn btn-sm btn-success">IN</button>
                         </form>
 
-                        <!-- OUTBOUND FORM -->
-                        <form action="/outbound/{{ item.id }}"
-                              method="post"
+                        <!-- OUT FORM -->
+                        <form action="/outbound/{{ item.id }}" method="post"
                               class="d-flex gap-1">
-                            <input type="number"
-                                   name="quantity"
+                            <input type="number" name="quantity"
                                    class="form-control form-control-sm"
-                                   placeholder="Qty"
-                                   required style="width:80px;">
-                            <input type="text"
-                                   name="partner"
+                                   placeholder="Qty" required style="width:80px;">
+                            <input type="text" name="partner"
                                    class="form-control form-control-sm"
-                                   placeholder="Customer"
-                                   required style="width:120px;">
-                            <button class="btn btn-sm btn-dark">
-                                OUT
-                            </button>
+                                   placeholder="Customer" required style="width:120px;">
+                            <button class="btn btn-sm btn-dark">OUT</button>
                         </form>
 
                     </td>
                 </tr>
+
+                <!-- MODAL -->
+                <div class="modal fade" id="historyModal{{ item.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    Movement History - {{ item.sku }}
+                                </h5>
+                                <button type="button" class="btn-close"
+                                        data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Partner</th>
+                                            <th>Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for m in row.movements %}
+                                        <tr>
+                                            <td>{{ m.date }}</td>
+                                            <td>{{ m.type }}</td>
+                                            <td>{{ m.partner }}</td>
+                                            <td>{{ m.quantity }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {% endfor %}
+
+                <!-- TOTALS ROW -->
+                <tr class="table-warning fw-bold">
+                    <td colspan="3">TOTAL</td>
+                    <td>{{ total_stock }}</td>
+                    <td colspan="2"></td>
+                    <td>+{{ total_in }}</td>
+                    <td colspan="2"></td>
+                    <td>-{{ total_out }}</td>
+                    <td></td>
+                </tr>
+
             </tbody>
         </table>
 
-        <!-- MOVEMENT HISTORY BUTTON -->
+        </div>
+
         <div class="mt-3">
             <a href="/movements" class="btn btn-secondary">
-                View Movement History
+                View All Movement History
             </a>
         </div>
 
