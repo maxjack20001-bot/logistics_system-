@@ -93,3 +93,14 @@ def delete_item(item_id: int):
         db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
+
+from datetime import datetime
+
+class Movement(Base):
+    __tablename__ = "movements"
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer)
+    type = Column(String)  # INBOUND or OUTBOUND
+    quantity = Column(Integer)
+    partner = Column(String)  # Supplier or Customer
+    date = Column(String, default=str(datetime.now()))
