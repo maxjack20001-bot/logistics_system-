@@ -1,112 +1,122 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Inventory Dashboard</title>
+    <title>Inventory System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 
-<div class="container mt-5">
+<div class="container mt-4">
 
-    <div class="card shadow p-4">
-        <h1 class="mb-3 text-center">📦 Inventory Dashboard</h1>
+    <h2 class="mb-4">Inventory Management System</h2>
 
-        <!-- Low Stock Counter -->
-        <div class="alert alert-warning text-center">
-            ⚠ Low Stock Items: <strong>{{ low_stock_count }}</strong>
+    <!-- Low Stock Alert -->
+    <div class="alert alert-warning">
+        Low Stock Items (< 10 units): <strong>{{ low_stock_count }}</strong>
+    </div>
+
+    <!-- Search Bar -->
+    <form method="get" action="/" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="search" value="{{ search }}" 
+                   class="form-control" placeholder="Search by SKU or Description">
+            <button class="btn btn-primary">Search</button>
         </div>
+    </form>
 
-        <!-- Search Bar -->
-        <form method="get" action="/" class="row mb-3">
-            <div class="col-md-10">
-                <input type="text" name="search" class="form-control"
-                       placeholder="Search by SKU or Description"
-                       value="{{ search }}">
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-dark w-100">Search</button>
-            </div>
-        </form>
-
-        <!-- Add Item Form -->
-        <form action="/add" method="post" class="row g-3">
-            <div class="col-md-3">
-                <input type="text" name="sku" class="form-control" placeholder="SKU" required>
-            </div>
-            <div class="col-md-5">
-                <input type="text" name="description" class="form-control" placeholder="Description" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" name="quantity" class="form-control" placeholder="Qty" required>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Add Item</button>
-            </div>
-        </form>
+    <!-- Add Item Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5>Add New Item</h5>
+            <form action="/add" method="post" class="row g-2">
+                <div class="col-md-3">
+                    <input type="text" name="sku" class="form-control" placeholder="SKU" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="description" class="form-control" placeholder="Description" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="quantity" class="form-control" placeholder="Quantity" required>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100">Add Item</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Inventory Table -->
-    <div class="card shadow mt-4 p-4">
-        <h3>Current Inventory</h3>
+    <table class="table table-bordered table-striped bg-white">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>SKU</th>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th width="280">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory %}
+            <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.sku }}</td>
+                <td>{{ item.description }}</td>
+                <td>
+                    {% if item.quantity < 10 %}
+                        <span class="text-danger fw-bold">{{ item.quantity }}</span>
+                    {% else %}
+                        {{ item.quantity }}
+                    {% endif %}
+                </td>
+                <td>
 
-        <table class="table table-bordered table-striped mt-3 align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>SKU</th>
-                    <th>Description</th>
-                    <th>Quantity</th>
-                    <th style="width: 400px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in inventory %}
-                <tr>
-                    <td>{{ item.sku }}</td>
-                    <td>{{ item.description }}</td>
-                    <td>
-                        {% if item.quantity < 10 %}
-                            <span class="badge bg-danger">{{ item.quantity }}</span>
-                        {% else %}
-                            <span class="badge bg-success">{{ item.quantity }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
+                    <!-- Edit Button -->
+                    <a href="/edit/{{ item.id }}" class="btn btn-sm btn-warning">Edit</a>
 
-                        <!-- Edit -->
-                        <a href="/edit/{{ item.id }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+                    <!-- Delete Button -->
+                    <form action="/delete/{{ item.id }}" method="post" 
+                          style="display:inline;">
+                        <button class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete this item?')">
+                            Delete
+                        </button>
+                    </form>
 
-                        <!-- Delete -->
-                        <form action="/delete/{{ item.id }}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-danger mb-1">Delete</button>
-                        </form>
+                    <!-- INBOUND -->
+                    <form action="/inbound/{{ item.id }}" method="post" 
+                          class="d-flex gap-1 mt-2">
+                        <input type="number" name="quantity"
+                               class="form-control form-control-sm"
+                               placeholder="Qty" required style="width:70px;">
+                        <input type="text" name="partner"
+                               class="form-control form-control-sm"
+                               placeholder="Supplier" required style="width:100px;">
+                        <button class="btn btn-sm btn-success">IN</button>
+                    </form>
 
-                        <!-- INBOUND FORM -->
-                        <form action="/movement/{{ item.id }}" method="post" class="d-flex gap-1 mt-2">
-                            <input type="hidden" name="movement_type" value="INBOUND">
-                            <input type="number" name="quantity" class="form-control form-control-sm"
-                                   placeholder="Qty" required style="width:80px;">
-                            <input type="text" name="partner" class="form-control form-control-sm"
-                                   placeholder="Supplier" required style="width:120px;">
-                            <button class="btn btn-sm btn-success">IN</button>
-                        </form>
+                    <!-- OUTBOUND -->
+                    <form action="/outbound/{{ item.id }}" method="post" 
+                          class="d-flex gap-1 mt-2">
+                        <input type="number" name="quantity"
+                               class="form-control form-control-sm"
+                               placeholder="Qty" required style="width:70px;">
+                        <input type="text" name="partner"
+                               class="form-control form-control-sm"
+                               placeholder="Customer" required style="width:100px;">
+                        <button class="btn btn-sm btn-dark">OUT</button>
+                    </form>
 
-                        <!-- OUTBOUND FORM -->
-                        <form action="/movement/{{ item.id }}" method="post" class="d-flex gap-1 mt-2">
-                            <input type="hidden" name="movement_type" value="OUTBOUND">
-                            <input type="number" name="quantity" class="form-control form-control-sm"
-                                   placeholder="Qty" required style="width:80px;">
-                            <input type="text" name="partner" class="form-control form-control-sm"
-                                   placeholder="Customer" required style="width:120px;">
-                            <button class="btn btn-sm btn-dark">OUT</button>
-                        </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-    </div>
+    <!-- Movement History Link -->
+    <a href="/movements" class="btn btn-secondary mt-3">
+        View Movement History
+    </a>
 
 </div>
 
