@@ -2,15 +2,23 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from sqlalchemy import Column, Integer, String, ForeignKey, create_engine
+from sqlalchemy import (
+    Column, Integer, String, ForeignKey,
+    create_engine, or_, case
+)
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+from datetime import datetime
 import os
 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
+# =========================================================
+# DATABASE
+# =========================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./inventory.db")
 
@@ -26,6 +34,14 @@ Base = declarative_base()
 # MODELS
 # =========================================================
 
+class Warehouse(Base):
+    __tablename__ = "warehouses"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    location = Column(String)
+
+
 class Item(Base):
     __tablename__ = "items"
 
@@ -33,10 +49,9 @@ class Item(Base):
     sku = Column(String, index=True)
     description = Column(String)
     quantity = Column(Integer)
-    
+
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"))
     warehouse = relationship("Warehouse")
-
 
 
 class Movement(Base):
@@ -47,54 +62,17 @@ class Movement(Base):
     type = Column(String)  # INBOUND / OUTBOUND
     quantity = Column(Integer)
     partner = Column(String)
-    date = Column(String, default=lambda:
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    date = Column(
+        String,
+        default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
-
-# ---------------- WAREHOUSE STRUCTURE ---------------- #
-
-class Warehouse(Base):
-    __tablename__ = "warehouses"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
-    location = Column(String)
-
-
-@app.get("/warehouses", response_class=HTMLResponse)
-def warehouses_page(request: Request):
-    db = SessionLocal()
-    warehouses = db.query(Warehouse).all()
-    db.close()
-
-    return templates.TemplateResponse(
-        "warehouses.html",
-        {
-            "request": request,
-            "warehouses": warehouses
-        }
-    )
-
-
-@app.post("/warehouses/add")
-def add_warehouse(
-    name: str = Form(...),
-    location: str = Form(None)
-):
-    db = SessionLocal()
-    warehouse = Warehouse(name=name, location=location)
-    db.add(warehouse)
-    db.commit()
-    db.close()
-    return RedirectResponse("/warehouses", status_code=303)
-
 
 
 class Zone(Base):
     __tablename__ = "zones"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String)  # Freezer, Dry, Chiller
+    name = Column(String)
     warehouse_id = Column(Integer)
 
 
@@ -102,7 +80,7 @@ class Bin(Base):
     __tablename__ = "bins"
 
     id = Column(Integer, primary_key=True)
-    code = Column(String)  # A1, FZ-01
+    code = Column(String)
     zone_id = Column(Integer)
 
 
@@ -195,7 +173,6 @@ def read_inventory(request: Request, search: str = ""):
         "total_out": total_out
     })
 
-
 # =========================================================
 # ITEM CRUD
 # =========================================================
@@ -222,7 +199,6 @@ def delete_item(item_id: int):
         db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
-
 
 # =========================================================
 # INBOUND / OUTBOUND
@@ -273,21 +249,36 @@ def outbound(
     db.close()
     return RedirectResponse("/", status_code=303)
 
-
 # =========================================================
 # WAREHOUSE ROUTES
 # =========================================================
 
-@app.post("/add-warehouse")
+@app.get("/warehouses", response_class=HTMLResponse)
+def warehouses_page(request: Request):
+    db = SessionLocal()
+    warehouses = db.query(Warehouse).all()
+    db.close()
+
+    return templates.TemplateResponse(
+        "warehouses.html",
+        {
+            "request": request,
+            "warehouses": warehouses
+        }
+    )
+
+
+@app.post("/warehouses/add")
 def add_warehouse(
     name: str = Form(...),
-    location: str = Form(...)
+    location: str = Form(None)
 ):
     db = SessionLocal()
-    db.add(Warehouse(name=name, location=location))
+    warehouse = Warehouse(name=name, location=location)
+    db.add(warehouse)
     db.commit()
     db.close()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/warehouses", status_code=303)
 
 
 @app.post("/add-zone")
