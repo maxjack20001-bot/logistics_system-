@@ -20,21 +20,21 @@ templates = Jinja2Templates(directory="templates")
 # DATABASE
 # =========================================================
 
-if "sqlite" in DATABASE_URL:
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
-else:
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,
-        connect_args={"sslmode": "require"}
-    )
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./inventory.db")
 
+# Fix Render postgres URL
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+    pool_pre_ping=True
+)
 
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
+
 
 # =========================================================
 # MODELS
