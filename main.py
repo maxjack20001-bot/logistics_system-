@@ -4,6 +4,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine, Column, Integer, String, or_, case
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
+import os
+
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
