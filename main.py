@@ -44,7 +44,6 @@ class Movement(Base):
         datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
 
-
 # ---------------- WAREHOUSE STRUCTURE ---------------- #
 
 class Warehouse(Base):
@@ -53,8 +52,9 @@ class Warehouse(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     location = Column(String)
-    
- @app.get("/warehouses", response_class=HTMLResponse)
+
+
+@app.get("/warehouses", response_class=HTMLResponse)
 def warehouses_page(request: Request):
     db = SessionLocal()
     warehouses = db.query(Warehouse).all()
@@ -67,7 +67,6 @@ def warehouses_page(request: Request):
             "warehouses": warehouses
         }
     )
-
 
 
 class Zone(Base):
