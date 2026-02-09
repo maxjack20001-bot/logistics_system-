@@ -38,10 +38,37 @@
 
         <!-- ADD ITEM -->
         <h5>Add New Item</h5>
-        <form action="/add" method="post" class="row g-3">
-            <div class="col-md-3">
-                <input type="text" name="sku" class="form-control" placeholder="SKU" required>
-            </div>
+<form action="/add" method="post" class="row g-3">
+
+    <!-- WAREHOUSE -->
+    <div class="col-md-3">
+        <select name="warehouse_id" class="form-control" required>
+            <option value="">Select Warehouse</option>
+            {% for w in warehouses %}
+                <option value="{{ w.id }}">{{ w.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <input type="text" name="sku" class="form-control" placeholder="SKU" required>
+    </div>
+
+    <div class="col-md-4">
+        <input type="text" name="description" class="form-control" placeholder="Description" required>
+    </div>
+
+    <div class="col-md-1">
+        <input type="number" name="quantity" class="form-control" placeholder="Qty" required>
+    </div>
+
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-success w-100">
+            Add
+        </button>
+    </div>
+</form>
+
             <div class="col-md-5">
                 <input type="text" name="description" class="form-control" placeholder="Description" required>
             </div>
@@ -66,10 +93,13 @@
             <table class="table table-bordered table-striped mt-3 align-middle">
                 <thead class="table-dark text-center">
                 <tr>
-                    <th>ID</th>
-                    <th>SKU</th>
-                    <th>Description</th>
-                    <th>Quantity</th>
+          <tr>
+    <th>ID</th>
+    <th>Warehouse</th>
+    <th>SKU</th>
+    <th>Description</th>
+    <th>Quantity</th>
+
 
                     <th class="bg-success text-white">IN Date</th>
                     <th class="bg-success text-white">Supplier</th>
@@ -93,9 +123,12 @@
                 {% set total_stock = total_stock + item.quantity %}
 
                 <tr class="text-center">
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.sku }}</td>
-                    <td>{{ item.description }}</td>
+                   
+  
+<td>{{ item.id }}</td>
+<td>{{ item.warehouse.name if item.warehouse else "-" }}</td>
+<td>{{ item.sku }}</td>
+<td>{{ item.description }}</td>
 
                     <td>
                         {% if item.quantity < 10 %}
