@@ -1,1 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Warehouses</title>
+</head>
+<body>
+
+<h2>Add Warehouse</h2>
+
+<form method="post" action="/add-warehouse">
+    <input name="name" placeholder="Warehouse Name" required>
+    <input name="location" placeholder="Location" required>
+    <button type="submit">Add</button>
+</form>
+
+<hr>
+
+<h2>All Warehouses</h2>
+
+<table border="1" cellpadding="6">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Location</th>
+    </tr>
+    {% for w in warehouses %}
+    <tr>
+        <td>{{ w.id }}</td>
+        <td>{{ w.name }}</td>
+        <td>{{ w.location }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<br>
+<a href="/">⬅ Back to Inventory</a>
+
+</body>
+</html>
 
