@@ -69,6 +69,20 @@ def warehouses_page(request: Request):
     )
 
 
+@app.post("/warehouses/add")
+def add_warehouse(
+    name: str = Form(...),
+    location: str = Form(None)
+):
+    db = SessionLocal()
+    warehouse = Warehouse(name=name, location=location)
+    db.add(warehouse)
+    db.commit()
+    db.close()
+    return RedirectResponse("/warehouses", status_code=303)
+
+
+
 class Zone(Base):
     __tablename__ = "zones"
 
