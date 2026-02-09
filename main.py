@@ -241,6 +241,33 @@ def outbound(
         db.commit()
 
     db.close()
+    class Warehouse(Base):
+    __tablename__ = "warehouses"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    location = Column(String)
+class Zone(Base):
+    __tablename__ = "zones"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)  # Freezer, Chiller, Dry, Ambient
+    warehouse_id = Column(Integer)
+class Bin(Base):
+    __tablename__ = "bins"
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String)  # A1, FZ-01, D-12
+    zone_id = Column(Integer)
+class Stock(Base):
+    __tablename__ = "stock"
+
+    id = Column(Integer, primary_key=True)
+    item_id = Column(Integer)
+    bin_id = Column(Integer)
+    quantity = Column(Integer, default=0)
+
     return RedirectResponse("/", status_code=303)
+Base.metadata.create_all(bind=engine)
 
 
