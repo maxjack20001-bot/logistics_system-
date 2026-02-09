@@ -32,7 +32,7 @@ class Item(Base):
     quantity = Column(Integer)
     
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"))
-warehouse = relationship("Warehouse")
+    warehouse = relationship("Warehouse")
 
 
 
