@@ -53,6 +53,21 @@ class Warehouse(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     location = Column(String)
+    
+    @app.get("/warehouses", response_class=HTMLResponse)
+def warehouses_page(request: Request):
+    db = SessionLocal()
+    warehouses = db.query(Warehouse).all()
+    db.close()
+
+    return templates.TemplateResponse(
+        "warehouses.html",
+        {
+            "request": request,
+            "warehouses": warehouses
+        }
+    )
+
 
 
 class Zone(Base):
