@@ -54,7 +54,7 @@ class Warehouse(Base):
     name = Column(String, unique=True)
     location = Column(String)
     
-    @app.get("/warehouses", response_class=HTMLResponse)
+ @app.get("/warehouses", response_class=HTMLResponse)
 def warehouses_page(request: Request):
     db = SessionLocal()
     warehouses = db.query(Warehouse).all()
