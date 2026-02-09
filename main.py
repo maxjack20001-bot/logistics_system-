@@ -30,6 +30,10 @@ class Item(Base):
     sku = Column(String, index=True)
     description = Column(String)
     quantity = Column(Integer)
+    
+    warehouse_id = Column(Integer, ForeignKey("warehouses.id"))
+warehouse = relationship("Warehouse")
+
 
 
 class Movement(Base):
