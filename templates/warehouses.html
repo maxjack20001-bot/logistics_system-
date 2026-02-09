@@ -2,22 +2,28 @@
 <html>
 <head>
     <title>Warehouses</title>
+    <style>
+        body { font-family: Arial; padding: 40px; }
+        table { border-collapse: collapse; width: 60%; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background: #f4f4f4; }
+        input { padding: 6px; }
+        button { padding: 6px 12px; }
+    </style>
 </head>
 <body>
 
-<h2>Add Warehouse</h2>
+<h2>Warehouses</h2>
 
-<form method="post" action="/add-warehouse">
+<form method="post" action="/warehouses/add">
     <input name="name" placeholder="Warehouse Name" required>
-    <input name="location" placeholder="Location" required>
-    <button type="submit">Add</button>
+    <input name="location" placeholder="Location">
+    <button type="submit">Add Warehouse</button>
 </form>
 
-<hr>
+<br>
 
-<h2>All Warehouses</h2>
-
-<table border="1" cellpadding="6">
+<table>
     <tr>
         <th>ID</th>
         <th>Name</th>
@@ -27,14 +33,13 @@
     <tr>
         <td>{{ w.id }}</td>
         <td>{{ w.name }}</td>
-        <td>{{ w.location }}</td>
+        <td>{{ w.location or "-" }}</td>
     </tr>
     {% endfor %}
 </table>
 
 <br>
-<a href="/">⬅ Back to Inventory</a>
+<a href="/">← Back to Inventory</a>
 
 </body>
 </html>
-
