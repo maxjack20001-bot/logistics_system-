@@ -241,5 +241,6 @@ def outbound(
         db.commit()
 
     db.close()
-   return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/", status_code=303)
+
 
