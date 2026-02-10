@@ -103,7 +103,7 @@ Base.metadata.create_all(bind=engine)
 # HOME
 # =========================================================
 
-@app.get("/inventory", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
