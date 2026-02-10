@@ -90,6 +90,7 @@
                 <thead class="table-dark text-center">
                 <tr>
                     <th>ID</th>
+                    <th>Warehouse</th>
                     <th>SKU</th>
                     <th>Description</th>
                     <th>Quantity</th>
@@ -116,9 +117,17 @@
                 {% set total_stock = total_stock + item.quantity %}
 
                 <tr class="text-center">
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.sku }}</td>
-                    <td>{{ item.description }}</td>
+    <td>{{ item.id }}</td>
+    <td>
+        {% if item.warehouse %}
+            {{ item.warehouse.name }}
+        {% else %}
+            -
+        {% endif %}
+    </td>
+    <td>{{ item.sku }}</td>
+    <td>{{ item.description }}</td>
+
 
                     <td>
                         {% if item.quantity < 10 %}
@@ -205,7 +214,7 @@
 
                 <!-- TOTAL ROW -->
                 <tr class="fw-bold text-center table-warning">
-    <td colspan="3">TOTAL</td>
+    <td colspan="4">TOTAL</td>
     <td>{{ total_quantity }}</td>
     <td colspan="2"></td>
     <td>+{{ total_in }}</td>
