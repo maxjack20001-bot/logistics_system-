@@ -112,7 +112,7 @@
                 {% set total_in = 0 %}
                 {% set total_out = 0 %}
 
-                {% for row in inventory %}
+                {% for row in inventory_data %}
                 {% set item = row.item %}
                 {% set total_stock = total_stock + item.quantity %}
 
@@ -233,7 +233,7 @@
 
 
 <!-- MODALS (OUTSIDE TABLE — IMPORTANT) -->
-{% for row in inventory %}
+{% for row in inventory_data %}
 {% set item = row.item %}
 <div class="modal fade" id="historyModal{{ item.id }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
