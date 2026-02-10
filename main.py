@@ -111,6 +111,7 @@ def read_inventory(request: Request, search: str = ""):
 
     warehouses = db.query(Warehouse).all()
 
+    # Search logic
     if search:
         items = (
             db.query(Item)
@@ -134,26 +135,6 @@ def read_inventory(request: Request, search: str = ""):
     total_quantity = 0
     total_in = 0
     total_out = 0
-
-    for item in items:
-        inventory_data.append(item)
-        total_quantity += item.quantity or 0
-       
-
-    db.close()
-
-    return templates.TemplateResponse(
-        "inventory.html",
-        {
-            "request": request,
-            "inventory_data": inventory_data,
-            "warehouses": warehouses,
-            "total_quantity": total_quantity,
-            "total_in": total_in,
-            "total_out": total_out,
-            "search": search,
-        },
-    )
 
     for item in items:
 
@@ -181,7 +162,7 @@ def read_inventory(request: Request, search: str = ""):
             Movement.type == "OUTBOUND"
         ).all()
 
-        total_quantity += item.quantity
+        total_quantity += item.quantity or 0
         total_in += sum(m.quantity for m in item_total_in)
         total_out += sum(m.quantity for m in item_total_out)
 
@@ -196,16 +177,20 @@ def read_inventory(request: Request, search: str = ""):
 
     db.close()
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "inventory": inventory_data,
-        "warehouses": warehouses,
-        "low_stock_count": low_stock_count,
-        "search": search,
-        "total_quantity": total_quantity,
-        "total_in": total_in,
-        "total_out": total_out
-    })
+    return templates.TemplateResponse(
+        "inventory.html",
+        {
+            "request": request,
+            "inventory_data": inventory_data,
+            "warehouses": warehouses,
+            "low_stock_count": low_stock_count,
+            "search": search,
+            "total_quantity": total_quantity,
+            "total_in": total_in,
+            "total_out": total_out
+        }
+    )
+
 
 # =========================================================
 # ITEM CRUD
