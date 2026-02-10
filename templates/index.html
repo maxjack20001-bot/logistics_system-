@@ -31,25 +31,47 @@
             </div>
         </form>
 
-        <!-- ADD ITEM -->
+                <!-- ADD ITEM -->
         <h5>Add New Item</h5>
         <form action="/add" method="post" class="row g-3">
+
+            <!-- NEW: Warehouse Dropdown -->
             <div class="col-md-3">
-                <input type="text" name="sku" class="form-control" placeholder="SKU" required>
+                <select name="warehouse_id" class="form-select" required>
+                    <option value="">Select Warehouse</option>
+                    {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}">
+                            {{ warehouse.name }} - {{ warehouse.location }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-5">
-                <input type="text" name="description" class="form-control" placeholder="Description" required>
-            </div>
+
             <div class="col-md-2">
-                <input type="number" name="quantity" class="form-control" placeholder="Quantity" required>
+                <input type="text" name="sku" class="form-control"
+                       placeholder="SKU" required>
             </div>
+
+            <div class="col-md-3">
+                <input type="text" name="description"
+                       class="form-control"
+                       placeholder="Description" required>
+            </div>
+
             <div class="col-md-2">
-                <button type="submit" class="btn btn-success w-100">
+                <input type="number" name="quantity"
+                       class="form-control"
+                       placeholder="Quantity" required>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit"
+                        class="btn btn-success w-100">
                     Add Item
                 </button>
             </div>
         </form>
-    </div>
+
 
 
     <!-- INVENTORY TABLE -->
