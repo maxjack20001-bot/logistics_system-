@@ -38,10 +38,14 @@ class Warehouse(Base):
     __tablename__ = "warehouses"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
-    location = Column(String)
+    name = Column(String, unique=True, nullable=False)
+    location = Column(String, nullable=False)
 
-    items = relationship("Item", back_populates="warehouse")
+    items = relationship(
+        "Item",
+        back_populates="warehouse",
+        cascade="all, delete-orphan"
+    )
 
 
 class Item(Base):
@@ -55,19 +59,30 @@ class Item(Base):
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False)
     warehouse = relationship("Warehouse", back_populates="items")
 
+    movements = relationship(
+        "Movement",
+        back_populates="item",
+        cascade="all, delete-orphan"
+    )
+
+
+from sqlalchemy import DateTime
+from datetime import datetime
 
 class Movement(Base):
     __tablename__ = "movements"
 
     id = Column(Integer, primary_key=True, index=True)
-    item_id = Column(Integer)
-    type = Column(String)  # INBOUND / OUTBOUND
-    quantity = Column(Integer)
-    partner = Column(String)
-    date = Column(
-        String,
-        default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
+
+    type = Column(String, nullable=False)  # INBOUND / OUTBOUND
+    quantity = Column(Integer, nullable=False)
+    partner = Column(String, nullable=False)
+
+    date = Column(DateTime, default=datetime.utcnow)
+
+    item = relationship("Item", back_populates="movements")
 
 
 class Zone(Base):
