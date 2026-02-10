@@ -103,12 +103,13 @@ Base.metadata.create_all(bind=engine)
 # HOME
 # =========================================================
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/inventory", response_class=HTMLResponse)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
     warehouses = db.query(Warehouse).all()
-        if search:
+
+    if search:
         items = (
             db.query(Item)
             .options(joinedload(Item.warehouse))
@@ -131,6 +132,27 @@ def read_inventory(request: Request, search: str = ""):
     total_quantity = 0
     total_in = 0
     total_out = 0
+
+    for item in items:
+        inventory_data.append(item)
+        total_quantity += item.quantity or 0
+        total_in += item.in_quantity or 0
+        total_out += item.out_quantity or 0
+
+    db.close()
+
+    return templates.TemplateResponse(
+        "inventory.html",
+        {
+            "request": request,
+            "inventory_data": inventory_data,
+            "warehouses": warehouses,
+            "total_quantity": total_quantity,
+            "total_in": total_in,
+            "total_out": total_out,
+            "search": search,
+        },
+    )
 
     for item in items:
 
