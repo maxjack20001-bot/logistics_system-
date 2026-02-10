@@ -108,26 +108,24 @@ def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
     warehouses = db.query(Warehouse).all()
-
-   
-  if search:
-    items = (
-        db.query(Item)
-        .options(joinedload(Item.warehouse))
-        .filter(
-            or_(
-                Item.sku.contains(search),
-                Item.description.contains(search)
+        if search:
+        items = (
+            db.query(Item)
+            .options(joinedload(Item.warehouse))
+            .filter(
+                or_(
+                    Item.sku.contains(search),
+                    Item.description.contains(search)
+                )
             )
+            .all()
         )
-        .all()
-    )
-else:
-    items = (
-        db.query(Item)
-        .options(joinedload(Item.warehouse))
-        .all()
-    )
+    else:
+        items = (
+            db.query(Item)
+            .options(joinedload(Item.warehouse))
+            .all()
+        )
 
     inventory_data = []
     total_quantity = 0
