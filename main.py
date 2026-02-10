@@ -41,6 +41,8 @@ class Warehouse(Base):
     name = Column(String, unique=True)
     location = Column(String)
 
+    items = relationship("Item", back_populates="warehouse")
+
 
 class Item(Base):
     __tablename__ = "items"
@@ -50,8 +52,8 @@ class Item(Base):
     description = Column(String)
     quantity = Column(Integer)
 
-    warehouse_id = Column(Integer, ForeignKey("warehouses.id"))
-    warehouse = relationship("Warehouse")
+    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False)
+    warehouse = relationship("Warehouse", back_populates="items")
 
 
 class Movement(Base):
@@ -93,7 +95,6 @@ class Stock(Base):
     quantity = Column(Integer, default=0)
 
 
-# Create tables
 Base.metadata.create_all(bind=engine)
 
 # =========================================================
@@ -125,10 +126,7 @@ def read_inventory(request: Request, search: str = ""):
 
         movements = db.query(Movement).filter(
             Movement.item_id == item.id
-        ).order_by(
-            case((Movement.type == "INBOUND", 0), else_=1),
-            Movement.id.desc()
-        ).all()
+        ).order_by(Movement.id.desc()).all()
 
         last_in = db.query(Movement).filter(
             Movement.item_id == item.id,
@@ -176,7 +174,6 @@ def read_inventory(request: Request, search: str = ""):
         "total_out": total_out
     })
 
-
 # =========================================================
 # ITEM CRUD
 # =========================================================
@@ -189,27 +186,23 @@ def add_item(
     quantity: int = Form(...)
 ):
     db = SessionLocal()
+
+    # Safety check: warehouse must exist
+    warehouse = db.query(Warehouse).filter(Warehouse.id == warehouse_id).first()
+    if not warehouse:
+        db.close()
+        return RedirectResponse("/", status_code=303)
+
     db.add(Item(
         sku=sku,
         description=description,
         quantity=quantity,
         warehouse_id=warehouse_id
     ))
+
     db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
-
-
-@app.post("/delete/{item_id}")
-def delete_item(item_id: int):
-    db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
-    if item:
-        db.delete(item)
-        db.commit()
-    db.close()
-    return RedirectResponse("/", status_code=303)
-
 
 # =========================================================
 # INBOUND / OUTBOUND
@@ -260,9 +253,8 @@ def outbound(
     db.close()
     return RedirectResponse("/", status_code=303)
 
-
 # =========================================================
-# WAREHOUSE ROUTES
+# WAREHOUSES
 # =========================================================
 
 @app.get("/warehouses", response_class=HTMLResponse)
@@ -286,7 +278,9 @@ def add_warehouse(
     location: str = Form(...)
 ):
     db = SessionLocal()
+
     db.add(Warehouse(name=name, location=location))
     db.commit()
     db.close()
+
     return RedirectResponse("/warehouses", status_code=303)
