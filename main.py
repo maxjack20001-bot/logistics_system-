@@ -138,8 +138,7 @@ def read_inventory(request: Request, search: str = ""):
     for item in items:
         inventory_data.append(item)
         total_quantity += item.quantity or 0
-        total_in += item.in_quantity or 0
-        total_out += item.out_quantity or 0
+       
 
     db.close()
 
