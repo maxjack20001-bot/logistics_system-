@@ -1,52 +1,25 @@
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey,
-    create_engine, or_, case
-)
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
+from sqlalchemy import create_engine, Column, Integer, String, or_, case
+from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
-import os
-
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# =========================================================
-# DATABASE
-# =========================================================
-
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./inventory.db")
-
-# Fix Render postgres URL
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = "sqlite:///./inventory.db"
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
-    pool_pre_ping=True
+    connect_args={"check_same_thread": False}
 )
 
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 
-# =========================================================
-# MODELS
-# =========================================================
-
-class Warehouse(Base):
-    __tablename__ = "warehouses"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
-    location = Column(String)
-
+# ---------------- MODELS ---------------- #
 
 class Item(Base):
     __tablename__ = "items"
@@ -55,9 +28,6 @@ class Item(Base):
     sku = Column(String, index=True)
     description = Column(String)
     quantity = Column(Integer)
-
-    warehouse_id = Column(Integer, ForeignKey("warehouses.id"))
-    warehouse = relationship("Warehouse")
 
 
 class Movement(Base):
@@ -68,48 +38,21 @@ class Movement(Base):
     type = Column(String)  # INBOUND / OUTBOUND
     quantity = Column(Integer)
     partner = Column(String)
-    date = Column(
-        String,
-        default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    date = Column(String, default=lambda:
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
 
 
-class Zone(Base):
-    __tablename__ = "zones"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    warehouse_id = Column(Integer)
-
-
-class Bin(Base):
-    __tablename__ = "bins"
-
-    id = Column(Integer, primary_key=True)
-    code = Column(String)
-    zone_id = Column(Integer)
-
-
-class Stock(Base):
-    __tablename__ = "stock"
-
-    id = Column(Integer, primary_key=True)
-    item_id = Column(Integer)
-    bin_id = Column(Integer)
-    quantity = Column(Integer, default=0)
-
-
-# Create tables
 Base.metadata.create_all(bind=engine)
 
-# =========================================================
-# HOME
-# =========================================================
+
+# ---------------- HOME ---------------- #
 
 @app.get("/", response_class=HTMLResponse)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
+    # SEARCH
     if search:
         items = db.query(Item).filter(
             or_(
@@ -121,29 +64,41 @@ def read_inventory(request: Request, search: str = ""):
         items = db.query(Item).all()
 
     inventory_data = []
+
     total_quantity = 0
     total_in = 0
     total_out = 0
 
     for item in items:
 
+        # SORT MOVEMENTS:
+        # 1️⃣ INBOUND first
+        # 2️⃣ then OUTBOUND
+        # 3️⃣ newest first inside each group
+
         movements = db.query(Movement).filter(
             Movement.item_id == item.id
         ).order_by(
-            case((Movement.type == "INBOUND", 0), else_=1),
+            case(
+                (Movement.type == "INBOUND", 0),
+                else_=1
+            ),
             Movement.id.desc()
         ).all()
 
+        # LAST IN
         last_in = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "INBOUND"
         ).order_by(Movement.id.desc()).first()
 
+        # LAST OUT
         last_out = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "OUTBOUND"
         ).order_by(Movement.id.desc()).first()
 
+        # REAL TOTALS (not just last)
         item_total_in = db.query(Movement).filter(
             Movement.item_id == item.id,
             Movement.type == "INBOUND"
@@ -155,6 +110,7 @@ def read_inventory(request: Request, search: str = ""):
         ).all()
 
         total_quantity += item.quantity
+
         total_in += sum(m.quantity for m in item_total_in)
         total_out += sum(m.quantity for m in item_total_out)
 
@@ -179,9 +135,8 @@ def read_inventory(request: Request, search: str = ""):
         "total_out": total_out
     })
 
-# =========================================================
-# ITEM CRUD
-# =========================================================
+
+# ---------------- ADD ITEM ---------------- #
 
 @app.post("/add")
 def add_item(
@@ -196,6 +151,38 @@ def add_item(
     return RedirectResponse("/", status_code=303)
 
 
+# ---------------- EDIT ---------------- #
+
+@app.get("/edit/{item_id}", response_class=HTMLResponse)
+def edit_page(request: Request, item_id: int):
+    db = SessionLocal()
+    item = db.query(Item).filter(Item.id == item_id).first()
+    db.close()
+    return templates.TemplateResponse("edit.html", {"request": request, "item": item})
+
+
+@app.post("/update/{item_id}")
+def update_item(
+    item_id: int,
+    sku: str = Form(...),
+    description: str = Form(...),
+    quantity: int = Form(...)
+):
+    db = SessionLocal()
+    item = db.query(Item).filter(Item.id == item_id).first()
+
+    if item:
+        item.sku = sku
+        item.description = description
+        item.quantity = quantity
+        db.commit()
+
+    db.close()
+    return RedirectResponse("/", status_code=303)
+
+
+# ---------------- DELETE ---------------- #
+
 @app.post("/delete/{item_id}")
 def delete_item(item_id: int):
     db = SessionLocal()
@@ -206,9 +193,8 @@ def delete_item(item_id: int):
     db.close()
     return RedirectResponse("/", status_code=303)
 
-# =========================================================
-# INBOUND / OUTBOUND
-# =========================================================
+
+# ---------------- INBOUND ---------------- #
 
 @app.post("/inbound/{item_id}")
 def inbound(
@@ -233,6 +219,8 @@ def inbound(
     return RedirectResponse("/", status_code=303)
 
 
+# ---------------- OUTBOUND ---------------- #
+
 @app.post("/outbound/{item_id}")
 def outbound(
     item_id: int,
@@ -253,87 +241,4 @@ def outbound(
         db.commit()
 
     db.close()
-    return RedirectResponse("/", status_code=303)
-
-# =========================================================
-# WAREHOUSE ROUTES
-# =========================================================
-
-@app.get("/warehouses", response_class=HTMLResponse)
-def warehouses_page(request: Request):
-    db = SessionLocal()
-    warehouses = db.query(Warehouse).all()
-    db.close()
-
-    return templates.TemplateResponse(
-        "warehouses.html",
-        {
-            "request": request,
-            "warehouses": warehouses
-        }
-    )
-
-
-@app.post("/warehouses/add")
-def add_warehouse(
-    name: str = Form(...),
-    location: str = Form(None)
-):
-    db = SessionLocal()
-    warehouse = Warehouse(name=name, location=location)
-    db.add(warehouse)
-    db.commit()
-    db.close()
-    return RedirectResponse("/warehouses", status_code=303)
-
-
-@app.post("/add-zone")
-def add_zone(
-    name: str = Form(...),
-    warehouse_id: int = Form(...)
-):
-    db = SessionLocal()
-    db.add(Zone(name=name, warehouse_id=warehouse_id))
-    db.commit()
-    db.close()
-    return RedirectResponse("/", status_code=303)
-
-
-@app.post("/add-bin")
-def add_bin(
-    code: str = Form(...),
-    zone_id: int = Form(...)
-):
-    db = SessionLocal()
-    db.add(Bin(code=code, zone_id=zone_id))
-    db.commit()
-    db.close()
-    return RedirectResponse("/", status_code=303)
-
-
-@app.post("/assign-stock")
-def assign_stock(
-    item_id: int = Form(...),
-    bin_id: int = Form(...),
-    quantity: int = Form(...)
-):
-    db = SessionLocal()
-
-    existing = db.query(Stock).filter(
-        Stock.item_id == item_id,
-        Stock.bin_id == bin_id
-    ).first()
-
-    if existing:
-        existing.quantity += quantity
-    else:
-        db.add(Stock(
-            item_id=item_id,
-            bin_id=bin_id,
-            quantity=quantity
-        ))
-
-    db.commit()
-    db.close()
-
     return RedirectResponse("/", status_code=303)
