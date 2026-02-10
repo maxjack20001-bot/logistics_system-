@@ -10,6 +10,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 from datetime import datetime
+from sqlalchemy.orm import joinedload
+
 import os
 
 
@@ -107,15 +109,25 @@ def read_inventory(request: Request, search: str = ""):
 
     warehouses = db.query(Warehouse).all()
 
-    if search:
-        items = db.query(Item).filter(
+   
+  if search:
+    items = (
+        db.query(Item)
+        .options(joinedload(Item.warehouse))
+        .filter(
             or_(
                 Item.sku.contains(search),
                 Item.description.contains(search)
             )
-        ).all()
-    else:
-        items = db.query(Item).all()
+        )
+        .all()
+    )
+else:
+    items = (
+        db.query(Item)
+        .options(joinedload(Item.warehouse))
+        .all()
+    )
 
     inventory_data = []
     total_quantity = 0
