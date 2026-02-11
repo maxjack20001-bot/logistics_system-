@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from main import Movement
+
 
 def calculate_stock(db: Session, item_id: int) -> int:
     inbound = db.query(Movement).filter(
