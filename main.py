@@ -153,9 +153,8 @@ def add_item(
     db.commit()
     db.close()
     return RedirectResponse("/", status_code=303)
-
 # =========================================================
-# INBOUND / OUTBOUND
+# INBOUND
 # =========================================================
 
 @app.post("/inbound/{item_id}")
@@ -168,7 +167,6 @@ def inbound(
     item = db.query(Item).filter(Item.id == item_id).first()
 
     if item and quantity > 0:
-        item.quantity += quantity
         db.add(Movement(
             item_id=item_id,
             type="INBOUND",
@@ -181,6 +179,10 @@ def inbound(
     return RedirectResponse("/", status_code=303)
 
 
+# =========================================================
+# OUTBOUND
+# =========================================================
+
 @app.post("/outbound/{item_id}")
 def outbound(
     item_id: int,
@@ -190,8 +192,9 @@ def outbound(
     db = SessionLocal()
     item = db.query(Item).filter(Item.id == item_id).first()
 
-    if item and quantity > 0 and item.quantity >= quantity:
-        item.quantity -= quantity
+    current_stock = calculate_stock(db, item_id)
+
+    if item and quantity > 0 and current_stock >= quantity:
         db.add(Movement(
             item_id=item_id,
             type="OUTBOUND",
