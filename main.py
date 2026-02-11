@@ -2,15 +2,11 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from sqlalchemy import ( Column, Integer, String, ForeignKey,
-    create_engine, or_, case
-)
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, or_
+from sqlalchemy.orm import sessionmaker, joinedload
 
-from datetime import datetime
-from sqlalchemy.orm import Session, joinedload
 from services.inventory_service import calculate_stock
+from models import Base, Warehouse, Item, Movement, Zone, Bin, Stock
 
 import os
 
@@ -32,87 +28,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# =========================================================
-# MODELS
-# =========================================================
 
-class Warehouse(Base):
-    __tablename__ = "warehouses"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    location = Column(String, nullable=False)
-
-    items = relationship(
-        "Item",
-        back_populates="warehouse",
-        cascade="all, delete-orphan"
-    )
-
-
-class Item(Base):
-    __tablename__ = "items"
-
-    id = Column(Integer, primary_key=True, index=True)
-    sku = Column(String, index=True)
-    description = Column(String)
-    quantity = Column(Integer)
-
-    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False)
-    warehouse = relationship("Warehouse", back_populates="items")
-
-    movements = relationship(
-        "Movement",
-        back_populates="item",
-        cascade="all, delete-orphan"
-    )
-
-
-from sqlalchemy import DateTime
-from datetime import datetime
-
-class Movement(Base):
-    __tablename__ = "movements"
-
-    id = Column(Integer, primary_key=True, index=True)
-
-    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
-
-    type = Column(String, nullable=False)  # INBOUND / OUTBOUND
-    quantity = Column(Integer, nullable=False)
-    partner = Column(String, nullable=False)
-
-    date = Column(DateTime, default=datetime.utcnow)
-
-    item = relationship("Item", back_populates="movements")
-
-
-class Zone(Base):
-    __tablename__ = "zones"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    warehouse_id = Column(Integer)
-
-
-class Bin(Base):
-    __tablename__ = "bins"
-
-    id = Column(Integer, primary_key=True)
-    code = Column(String)
-    zone_id = Column(Integer)
-
-
-class Stock(Base):
-    __tablename__ = "stock"
-
-    id = Column(Integer, primary_key=True)
-    item_id = Column(Integer)
-    bin_id = Column(Integer)
-    quantity = Column(Integer, default=0)
-
-
-Base.metadata.create_all(bind=engine)
 
 # =========================================================
 # HOME
