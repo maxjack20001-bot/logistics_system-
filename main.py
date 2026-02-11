@@ -36,30 +36,45 @@ SessionLocal = sessionmaker(bind=engine)
 # =========================================================
 # HOME
 # =========================================================
-@app.get("/", response_class=HTMLResponse)
-def read_inventory(request: Request, search: str = ""):
+@app.post("/add")
+def add_item(
+    warehouse_id: int = Form(...),
+    sku: str = Form(...),
+    description: str = Form(...),
+    quantity: int = Form(...)
+):
     db = SessionLocal()
 
-    warehouses = db.query(Warehouse).all()
+    warehouse = db.query(Warehouse).filter(Warehouse.id == warehouse_id).first()
+    if not warehouse:
+        db.close()
+        return RedirectResponse("/", status_code=303)
 
-    if search:
-        items = (
-            db.query(Item)
-            .options(joinedload(Item.warehouse))
-            .filter(
-                or_(
-                    Item.sku.contains(search),
-                    Item.description.contains(search)
-                )
-            )
-            .all()
-        )
-    else:
-        items = (
-            db.query(Item)
-            .options(joinedload(Item.warehouse))
-            .all()
-        )
+    # 1️⃣ Create item with ZERO quantity
+    new_item = Item(
+        sku=sku,
+        description=description,
+        quantity=0,   # 🔥 important
+        warehouse_id=warehouse_id
+    )
+
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+
+    # 2️⃣ Create initial inbound movement
+    if quantity > 0:
+        db.add(Movement(
+            item_id=new_item.id,
+            type="INBOUND",
+            quantity=quantity,
+            partner="Initial Stock"
+        ))
+        db.commit()
+
+    db.close()
+    return RedirectResponse("/", status_code=303)
+
 
     inventory_data = []
     total_quantity = 0
