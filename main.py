@@ -237,3 +237,6 @@ def add_warehouse(
     db.close()
 
     return RedirectResponse("/warehouses", status_code=303)
+    Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)
+
