@@ -1,7 +1,6 @@
-from sqlalchemy.orm import Session
+from models import Movement
 
-
-def calculate_stock(db: Session, item_id: int) -> int:
+def calculate_stock(db, item_id: int):
     inbound = db.query(Movement).filter(
         Movement.item_id == item_id,
         Movement.type == "INBOUND"
