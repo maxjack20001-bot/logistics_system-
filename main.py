@@ -25,6 +25,9 @@ engine = create_engine(
     pool_pre_ping=True
 )
 
+
+Base.metadata.create_all(bind=engine)
+
 SessionLocal = sessionmaker(bind=engine)
 
 
