@@ -140,22 +140,35 @@ def add_item(
 ):
     db = SessionLocal()
 
-    # Safety check: warehouse must exist
     warehouse = db.query(Warehouse).filter(Warehouse.id == warehouse_id).first()
     if not warehouse:
         db.close()
         return RedirectResponse("/", status_code=303)
 
-    db.add(Item(
+    # 1️⃣ Create item with ZERO quantity
+    new_item = Item(
         sku=sku,
         description=description,
-        quantity=quantity,
+        quantity=0,
         warehouse_id=warehouse_id
-    ))
+    )
 
+    db.add(new_item)
     db.commit()
+
+    # 2️⃣ Create initial INBOUND movement
+    if quantity > 0:
+        db.add(Movement(
+            item_id=new_item.id,
+            type="INBOUND",
+            quantity=quantity,
+            partner="Initial Stock"
+        ))
+        db.commit()
+
     db.close()
     return RedirectResponse("/", status_code=303)
+
 # =========================================================
 # INBOUND
 # =========================================================
