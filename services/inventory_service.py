@@ -1,10 +1,27 @@
- from sqlalchemy import func
-from models import Movement
-
+@app.get("/", response_class=HTMLResponse)
 def read_inventory(request: Request, search: str = ""):
     db = SessionLocal()
 
-    items = db.query(Item).all()
+    warehouses = db.query(Warehouse).all()
+
+    if search:
+        items = (
+            db.query(Item)
+            .options(joinedload(Item.warehouse))
+            .filter(
+                or_(
+                    Item.sku.contains(search),
+                    Item.description.contains(search)
+                )
+            )
+            .all()
+        )
+    else:
+        items = (
+            db.query(Item)
+            .options(joinedload(Item.warehouse))
+            .all()
+        )
 
     inventory_data = []
     total_quantity = 0
@@ -56,5 +73,16 @@ def read_inventory(request: Request, search: str = ""):
 
     db.close()
 
-    return templates.TemplateResponse(...)
-
+    return templates.TemplateResponse(
+        "inventory.html",
+        {
+            "request": request,
+            "inventory_data": inventory_data,
+            "warehouses": warehouses,
+            "low_stock_count": low_stock_count,
+            "search": search,
+            "total_quantity": total_quantity,
+            "total_in": total_in,
+            "total_out": total_out
+        }
+    )
