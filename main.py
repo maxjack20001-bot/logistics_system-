@@ -2,11 +2,11 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from sqlalchemy import create_engine, or_
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from services.inventory_service import calculate_stock
-from models import Base, Warehouse, Item, Movement, Zone, Bin, Stock
+from models import Base, Warehouse, Item, Movement
 
 import os
 
@@ -25,56 +25,22 @@ engine = create_engine(
     pool_pre_ping=True
 )
 
-
-Base.metadata.create_all(bind=engine)
-
 SessionLocal = sessionmaker(bind=engine)
 
-
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 
 # =========================================================
 # HOME
 # =========================================================
-@app.post("/add")
-def add_item(
-    warehouse_id: int = Form(...),
-    sku: str = Form(...),
-    description: str = Form(...),
-    quantity: int = Form(...)
-):
+
+@app.get("/", response_class=HTMLResponse)
+def read_inventory(request: Request):
     db = SessionLocal()
 
-    warehouse = db.query(Warehouse).filter(Warehouse.id == warehouse_id).first()
-    if not warehouse:
-        db.close()
-        return RedirectResponse("/", status_code=303)
-
-    # 1️⃣ Create item with ZERO quantity
-    new_item = Item(
-        sku=sku,
-        description=description,
-        quantity=0,   # 🔥 important
-        warehouse_id=warehouse_id
-    )
-
-    db.add(new_item)
-    db.commit()
-    db.refresh(new_item)
-
-    # 2️⃣ Create initial inbound movement
-    if quantity > 0:
-        db.add(Movement(
-            item_id=new_item.id,
-            type="INBOUND",
-            quantity=quantity,
-            partner="Initial Stock"
-        ))
-        db.commit()
-
-    db.close()
-    return RedirectResponse("/", status_code=303)
-
+    warehouses = db.query(Warehouse).all()
+    items = db.query(Item).options(joinedload(Item.warehouse)).all()
 
     inventory_data = []
     total_quantity = 0
@@ -133,7 +99,6 @@ def add_item(
             "inventory_data": inventory_data,
             "warehouses": warehouses,
             "low_stock_count": low_stock_count,
-            "search": search,
             "total_quantity": total_quantity,
             "total_in": total_in,
             "total_out": total_out
@@ -141,9 +106,8 @@ def add_item(
     )
 
 
-
 # =========================================================
-# ITEM CRUD
+# ADD ITEM
 # =========================================================
 
 @app.post("/add")
@@ -160,7 +124,7 @@ def add_item(
         db.close()
         return RedirectResponse("/", status_code=303)
 
-    # 1️⃣ Create item with ZERO quantity
+    # Create item with zero quantity (stock calculated from movements)
     new_item = Item(
         sku=sku,
         description=description,
@@ -170,8 +134,9 @@ def add_item(
 
     db.add(new_item)
     db.commit()
+    db.refresh(new_item)
 
-    # 2️⃣ Create initial INBOUND movement
+    # Create initial inbound movement
     if quantity > 0:
         db.add(Movement(
             item_id=new_item.id,
@@ -183,6 +148,7 @@ def add_item(
 
     db.close()
     return RedirectResponse("/", status_code=303)
+
 
 # =========================================================
 # INBOUND
@@ -237,6 +203,7 @@ def outbound(
     db.close()
     return RedirectResponse("/", status_code=303)
 
+
 # =========================================================
 # WAREHOUSES
 # =========================================================
@@ -268,5 +235,3 @@ def add_warehouse(
     db.close()
 
     return RedirectResponse("/warehouses", status_code=303)
-   
-
