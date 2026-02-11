@@ -10,6 +10,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
+from services.inventory_service import calculate_stock
+
 import os
 
 
