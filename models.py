@@ -55,3 +55,12 @@ class Stock(Base):
     item_id = Column(Integer)
     bin_id = Column(Integer)
     quantity = Column(Integer, default=0)
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    is_admin = Column(Integer, default=0)  # 1 = admin, 0 = normal user
+
