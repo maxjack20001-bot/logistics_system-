@@ -15,6 +15,7 @@ class Warehouse(Base):
 class Item(Base):
     __tablename__ = "items"
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
     sku = Column(String, index=True)
     description = Column(String)
     quantity = Column(Integer)
