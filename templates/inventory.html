@@ -37,46 +37,60 @@
             </div>
         </form>
 
-                <!-- ADD ITEM -->
-        <h5>Add New Item</h5>
-        <form action="/add" method="post" class="row g-3">
+              
 
-            <!-- NEW: Warehouse Dropdown -->
-            <div class="col-md-3">
-                <select name="warehouse_id" class="form-select" required>
-                    <option value="">Select Warehouse</option>
-                    {% for warehouse in warehouses %}
-                        <option value="{{ warehouse.id }}">
-                            {{ warehouse.name }} - {{ warehouse.location }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+            <!-- ADD ITEM -->
+<h5>Add New Item</h5>
+<form action="/add" method="post" class="row g-3">
 
-            <div class="col-md-2">
-                <input type="text" name="sku" class="form-control"
-                       placeholder="SKU" required>
-            </div>
+    <!-- Warehouse Dropdown -->
+    <div class="col-md-3">
+        <select name="warehouse_id" class="form-select" required>
+            <option value="">Select Warehouse</option>
+            {% for warehouse in warehouses %}
+                <option value="{{ warehouse.id }}">
+                    {{ warehouse.name }} - {{ warehouse.location }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
 
-            <div class="col-md-3">
-                <input type="text" name="description"
-                       class="form-control"
-                       placeholder="Description" required>
-            </div>
+    <!--  NEW: Item Name -->
+    <div class="col-md-2">
+        <input type="text" name="name"
+               class="form-control"
+               placeholder="Item Name" required>
+    </div>
 
-            <div class="col-md-2">
-                <input type="number" name="quantity"
-                       class="form-control"
-                       placeholder="Quantity" required>
-            </div>
+    <!-- SKU -->
+    <div class="col-md-2">
+        <input type="text" name="sku"
+               class="form-control"
+               placeholder="SKU" required>
+    </div>
 
-            <div class="col-md-2">
-                <button type="submit"
-                        class="btn btn-success w-100">
-                    Add Item
-                </button>
-            </div>
-        </form>
+    <!-- Description -->
+    <div class="col-md-3">
+        <input type="text" name="description"
+               class="form-control"
+               placeholder="Description" required>
+    </div>
+
+    <!-- Quantity -->
+    <div class="col-md-1">
+        <input type="number" name="quantity"
+               class="form-control"
+               placeholder="Qty" required>
+    </div>
+
+    <!-- Submit -->
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-success w-100">
+            Add
+        </button>
+    </div>
+
+</form>
 
 
 
