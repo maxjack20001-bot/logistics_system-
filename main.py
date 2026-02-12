@@ -102,14 +102,12 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 
     return RedirectResponse("/", status_code=303)
 
-@app.get("/create-admin")
-def create_admin():
+@app.get("/reset-admin")
+def reset_admin():
     db = SessionLocal()
 
-    existing = db.query(User).filter(User.username == "admin").first()
-    if existing:
-        db.close()
-        return {"message": "Admin already exists"}
+    db.query(User).filter(User.username == "admin").delete()
+    db.commit()
 
     admin = User(
         username="admin",
@@ -121,7 +119,8 @@ def create_admin():
     db.commit()
     db.close()
 
-    return {"message": "Admin created"}
+    return {"message": "Admin reset successfully"}
+
 
 
 # =========================================================
