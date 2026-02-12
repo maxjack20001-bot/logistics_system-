@@ -30,6 +30,40 @@ SessionLocal = sessionmaker(bind=engine)
 # Create tables
 Base.metadata.create_all(bind=engine)
 
+#==========================================================
+#login and addmin 
+#==========================================================
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+from fastapi import Form
+
+@app.post("/register")
+def register(username: str = Form(...), password: str = Form(...)):
+    db = SessionLocal()
+
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
+        db.close()
+        return {"error": "Username already exists"}
+
+    new_user = User(
+        username=username,
+        password_hash=hash_password(password),
+        is_admin=0
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.close()
+
+    return {"message": "User created successfully"}
 
 # =========================================================
 # HOME
