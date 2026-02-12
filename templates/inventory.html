@@ -143,13 +143,12 @@
     <td>{{ item.description }}</td>
 
 
-                    <td>
-                        {% if item.quantity < 10 %}
-                            <span class="badge bg-danger">{{ item.quantity }}</span>
-                        {% else %}
-                            <span class="badge bg-success">{{ item.quantity }}</span>
-                        {% endif %}
-                    </td>
+                    {% if row.stock < 10 %}
+    <span class="badge bg-danger">{{ row.stock }}</span>
+{% else %}
+    <span class="badge bg-success">{{ row.stock }}</span>
+{% endif %}
+
 
                     <!-- IN -->
                     <td class="bg-success bg-opacity-10">
