@@ -40,9 +40,10 @@ SessionLocal = sessionmaker(bind=engine)
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-#==========================================================
-# Login and Admin
-#==========================================================
+
+# =========================================================
+# LOGIN & ADMIN SYSTEM
+# =========================================================
 
 from passlib.context import CryptContext
 from fastapi import Form
@@ -50,13 +51,18 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 def hash_password(password: str):
     return pwd_context.hash(password)
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
+# ---------------------------------------------------------
+# REGISTER USER
+# ---------------------------------------------------------
 @app.post("/register")
 def register(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
@@ -78,23 +84,35 @@ def register(username: str = Form(...), password: str = Form(...)):
 
     return {"message": "User created successfully"}
 
+
+# ---------------------------------------------------------
+# LOGIN PAGE
+# ---------------------------------------------------------
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+
+# ---------------------------------------------------------
+# LOGIN ACTION
+# ---------------------------------------------------------
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
     user = db.query(User).filter(User.username == username).first()
 
-    if not user or not verify_password(password, user.password_hash):
+    if not user:
         db.close()
         return templates.TemplateResponse(
             "login.html",
-            {
-                "request": request,
-                "error": "Invalid username or password"
-            }
+            {"request": request, "error": "Invalid username or password"}
+        )
+
+    if not verify_password(password, user.password_hash):
+        db.close()
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Invalid username or password"}
         )
 
     request.session["user"] = user.username
@@ -102,13 +120,19 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 
     return RedirectResponse("/", status_code=303)
 
+
+# ---------------------------------------------------------
+# CREATE / RESET ADMIN (ONLY FOR TESTING)
+# ---------------------------------------------------------
 @app.get("/reset-admin")
 def reset_admin():
     db = SessionLocal()
 
+    # delete existing admin if exists
     db.query(User).filter(User.username == "admin").delete()
     db.commit()
 
+    # create new admin
     admin = User(
         username="admin",
         password_hash=hash_password("1234"),
@@ -120,8 +144,6 @@ def reset_admin():
     db.close()
 
     return {"message": "Admin reset successfully"}
-
-
 
 # =========================================================
 # HOME
