@@ -7,6 +7,9 @@ from sqlalchemy.orm import sessionmaker, joinedload
 
 from services.inventory_service import calculate_stock
 from models import Base, Warehouse, Item, Movement
+from fastapi.responses import HTMLResponse
+from fastapi import Request
+from models import User
 
 import os
 
@@ -64,6 +67,25 @@ def register(username: str = Form(...), password: str = Form(...)):
     db.close()
 
     return {"message": "User created successfully"}
+    
+     @app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login")
+def login(username: str = Form(...), password: str = Form(...)):
+    db = SessionLocal()
+
+    user = db.query(User).filter(User.username == username).first()
+
+    if not user or not verify_password(password, user.password_hash):
+        db.close()
+        return {"error": "Invalid username or password"}
+
+    db.close()
+    return RedirectResponse("/", status_code=303)
+
+
 
 # =========================================================
 # HOME
