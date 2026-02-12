@@ -126,26 +126,6 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 # ---------------------------------------------------------
 # CREATE / RESET ADMIN (ONLY FOR TESTING)
 # ---------------------------------------------------------
-@app.get("/reset-admin")
-def reset_admin():
-    db = SessionLocal()
-
-    # delete existing admin if exists
-    db.query(User).filter(User.username == "admin").delete()
-    db.commit()
-
-    # create new admin
-    admin = User(
-        username="admin",
-        password_hash=hash_password("1234"),
-        is_admin=1
-    )
-
-    db.add(admin)
-    db.commit()
-    db.close()
-
-    return {"message": "Admin reset successfully"}
 
 # =========================================================
 # HOME
