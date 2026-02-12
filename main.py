@@ -82,10 +82,10 @@ def register(username: str = Form(...), password: str = Form(...)):
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+
 @app.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
-
     user = db.query(User).filter(User.username == username).first()
 
     if not user or not verify_password(password, user.password_hash):
@@ -93,36 +93,23 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         return {"error": "Invalid username or password"}
 
     request.session["user"] = user.username
-
     db.close()
-    return RedirectResponse("/", status_code=303)
 
+    return RedirectResponse("/", status_code=303)
 
 
 # =========================================================
 # HOME
 # =========================================================
 
-# Show login page
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+@app.get("/", response_class=HTMLResponse)
+def read_inventory(request: Request):
 
+    # 🔒 Protect page
+    if "user" not in request.session:
+        return RedirectResponse("/login", status_code=303)
 
-# Handle login form submission
-@app.post("/login")
-def login(request: Request, username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
-    user = db.query(User).filter(User.username == username).first()
-
-    if not user or not verify_password(password, user.password_hash):
-        db.close()
-        return {"error": "Invalid username or password"}
-
-    request.session["user"] = user.username
-
-    db.close()
-    return RedirectResponse("/", status_code=303)
 
     warehouses = db.query(Warehouse).all()
     items = db.query(Item).options(joinedload(Item.warehouse)).all()
@@ -189,7 +176,6 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
             "total_out": total_out
         }
     )
-
 
 
 # =========================================================
