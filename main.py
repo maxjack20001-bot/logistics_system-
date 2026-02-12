@@ -113,6 +113,7 @@ def read_inventory(request: Request):
 @app.post("/add")
 def add_item(
     warehouse_id: int = Form(...),
+    name: str = Form(...),
     sku: str = Form(...),
     description: str = Form(...),
     quantity: int = Form(...)
@@ -126,6 +127,7 @@ def add_item(
 
     # Create item with zero quantity (stock calculated from movements)
     new_item = Item(
+        name=name,
         sku=sku,
         description=description,
         quantity=0,
