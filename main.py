@@ -102,6 +102,11 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 
 @app.get("/", response_class=HTMLResponse)
 def read_inventory(request: Request):
+
+    # 🔒 PROTECT PAGE
+    if "user" not in request.session:
+        return RedirectResponse("/login", status_code=303)
+
     db = SessionLocal()
 
     warehouses = db.query(Warehouse).all()
@@ -169,6 +174,7 @@ def read_inventory(request: Request):
             "total_out": total_out
         }
     )
+
 
 
 # =========================================================
