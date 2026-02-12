@@ -37,7 +37,9 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(bind=engine)
 
-# Create tables
+# Create tablesfrom models import Base  # wherever your Base is defined
+from models import Base
+from models import User
 Base.metadata.create_all(bind=engine)
 
 
