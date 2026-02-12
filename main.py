@@ -102,6 +102,21 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 
     return RedirectResponse("/", status_code=303)
 
+@app.get("/create-admin")
+def create_admin():
+    db = SessionLocal()
+
+    admin = User(
+        username="admin",
+        password_hash=hash_password("1234"),
+        is_admin=1
+    )
+
+    db.add(admin)
+    db.commit()
+    db.close()
+
+    return {"message": "Admin created"}
 
 
 # =========================================================
