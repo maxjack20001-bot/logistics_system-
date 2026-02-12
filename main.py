@@ -16,6 +16,13 @@ import os
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+from starlette.middleware.sessions import SessionMiddleware
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="super-secret-key-change-this"
+)
+
 
 # =========================================================
 # DATABASE
@@ -72,13 +79,8 @@ def register(username: str = Form(...), password: str = Form(...)):
     return {"message": "User created successfully"}
 
 
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-
 @app.post("/login")
-def login(username: str = Form(...), password: str = Form(...)):
+def login(request: Request, username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
 
     user = db.query(User).filter(User.username == username).first()
@@ -86,6 +88,8 @@ def login(username: str = Form(...), password: str = Form(...)):
     if not user or not verify_password(password, user.password_hash):
         db.close()
         return {"error": "Invalid username or password"}
+
+    request.session["user"] = user.username
 
     db.close()
     return RedirectResponse("/", status_code=303)
