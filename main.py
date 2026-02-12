@@ -34,9 +34,12 @@ SessionLocal = sessionmaker(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 #==========================================================
-#login and addmin 
+# Login and Admin
 #==========================================================
+
 from passlib.context import CryptContext
+from fastapi import Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -45,7 +48,7 @@ def hash_password(password: str):
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
-from fastapi import Form
+
 
 @app.post("/register")
 def register(username: str = Form(...), password: str = Form(...)):
@@ -67,10 +70,12 @@ def register(username: str = Form(...), password: str = Form(...)):
     db.close()
 
     return {"message": "User created successfully"}
-    
-     @app.get("/login", response_class=HTMLResponse)
+
+
+@app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
 
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
