@@ -106,6 +106,11 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 def create_admin():
     db = SessionLocal()
 
+    existing = db.query(User).filter(User.username == "admin").first()
+    if existing:
+        db.close()
+        return {"message": "Admin already exists"}
+
     admin = User(
         username="admin",
         password_hash=hash_password("1234"),
