@@ -129,6 +129,21 @@ def read_inventory(request: Request):
     # 🔒 Protect page
     if "user" not in request.session:
         return RedirectResponse("/login", status_code=303)
+        @app.get("/create-admin")
+def create_admin():
+    db = SessionLocal()
+
+    admin = User(
+        username="admin",
+        password_hash=hash_password("1234"),
+        is_admin=1
+    )
+
+    db.add(admin)
+    db.commit()
+    db.close()
+
+    return {"message": "Admin created"}
 
     db = SessionLocal()
 
