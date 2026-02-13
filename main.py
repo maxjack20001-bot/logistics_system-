@@ -101,6 +101,9 @@ def register(email: str = Form(...), password: str = Form(...)):
 # ---------------------------------------------------------
 # LOGIN PAGE
 # ---------------------------------------------------------
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
 
 @app.post("/login", response_class=HTMLResponse)
