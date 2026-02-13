@@ -1,4 +1,3 @@
-from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -10,6 +9,7 @@ from models import Base, Warehouse, Item, Movement
 from fastapi.responses import HTMLResponse
 from fastapi import Request
 from models import User
+from fastapi import FastAPI, Depends,Request, Form
 
 import os
 
