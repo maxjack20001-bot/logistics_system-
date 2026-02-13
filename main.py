@@ -75,16 +75,16 @@ def verify_password(plain_password, hashed_password):
 # REGISTER USER
 # ---------------------------------------------------------
 @app.post("/register")
-def register(username: str = Form(...), password: str = Form(...)):
+def register(email: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
 
-    existing_user = db.query(User).filter(User.username == username).first()
+    existing_user = db.query(User).filter(User.email == email).first()
     if existing_user:
         db.close()
-        return {"error": "Username already exists"}
+        return {"error": "Email already registered"}
 
     new_user = User(
-        username=username,
+        email=email,
         password_hash=hash_password(password),
         is_admin=0
     )
@@ -93,15 +93,30 @@ def register(username: str = Form(...), password: str = Form(...)):
     db.commit()
     db.close()
 
-    return {"message": "User created successfully"}
+    return {"message": "User created successfully"
 
 
 # ---------------------------------------------------------
 # LOGIN PAGE
 # ---------------------------------------------------------
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+@app.post("/login", response_class=HTMLResponse)
+def login(request: Request, email: str = Form(...), password: str = Form(...)):
+    db = SessionLocal()
+
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user or not verify_password(password, user.password_hash):
+        db.close()
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Invalid email or password"}
+        )
+
+    request.session["user_id"] = user.id  # ✅ store ID not email
+    db.close()
+
+    return RedirectResponse("/", status_code=303)
+
 
 
 # ---------------------------------------------------------
@@ -137,27 +152,28 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 # ---------------------------------------------------------
 
 @app.get("/reset-admin")
-def reset_admin(db: Session = Depends(get_db)):
-    # Only allow reset if special secret key exists
-    reset_secret = os.getenv("RESET_ADMIN_SECRET")
+def reset_admin():
+    db = SessionLocal()
 
+    reset_secret = os.getenv("RESET_ADMIN_SECRET")
     if not reset_secret:
         return {"error": "Admin reset is disabled in production."}
 
-    admin = db.query(User).filter(User.username == "admin").first()
+    admin = db.query(User).filter(User.email == "admin@system.com").first()
 
     if admin:
         admin.password_hash = hash_password("1234")
+        admin.is_admin = 1
     else:
         admin = User(
-    username="admin",
-    password_hash=hash_password("1234"),
-    is_admin=1
-)
-
+            email="admin@system.com",
+            password_hash=hash_password("1234"),
+            is_admin=1
+        )
         db.add(admin)
 
     db.commit()
+    db.close()
 
     return {"message": "Admin reset successful"}
 
@@ -170,7 +186,8 @@ def reset_admin(db: Session = Depends(get_db)):
 def read_inventory(request: Request):
 
     # 🔒 Protect page
-    if "user" not in request.session:
+   if "user_id" not in request.session:
+
         return RedirectResponse("/login", status_code=303)
        
     db = SessionLocal()
