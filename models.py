@@ -60,7 +60,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    is_admin = Column(Integer, default=0)  # 1 = admin, 0 = normal user
 
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+
+    is_admin = Column(Integer, default=0)  # 1 = admin
+    is_active = Column(Integer, default=1)  # 1 = active, 0 = disabled
+    created_at = Column(DateTime, default=datetime.utcnow)
