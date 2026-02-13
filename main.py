@@ -99,10 +99,14 @@ def register(email: str = Form(...), password: str = Form(...)):
 # ---------------------------------------------------------
 # LOGIN PAGE
 # ---------------------------------------------------------
-@app.post("/login", response_class=HTMLResponse)
-def login(request: Request, email: str = Form(...), password: str = Form(...)):
-    db = SessionLocal()
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
+
+@app.post("/login", response_class=HTMLResponse)
+def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    
     user = db.query(User).filter(User.email == email).first()
 
     if not user or not verify_password(password, user.password_hash):
