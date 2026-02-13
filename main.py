@@ -180,10 +180,11 @@ def reset_admin():
 # =========================================================
 # logout
 # =========================================================
-@app.get("/logout")
+@app.post("/logout")
 def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login", status_code=303)
+
 
 # =========================================================
 # HOME
