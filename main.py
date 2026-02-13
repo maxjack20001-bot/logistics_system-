@@ -101,13 +101,16 @@ def register(email: str = Form(...), password: str = Form(...)):
 # ---------------------------------------------------------
 # LOGIN PAGE
 # ---------------------------------------------------------
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
 
-    db = SessionLocal()   # ✅ create db session
+    db = SessionLocal()
 
     user = db.query(User).filter(User.email == username).first()
-    # OR use User.username == username if your column is username
 
     if not user or not verify_password(password, user.password_hash):
         db.close()
@@ -120,7 +123,6 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     db.close()
 
     return RedirectResponse("/", status_code=303)
-
 
 
 # ---------------------------------------------------------
@@ -198,7 +200,7 @@ def logout(request: Request):
 def read_inventory(request: Request):
 
     # 🔒 Protect page
-    if "user" not in request.session:
+    if "user_id" not in request.session:
         return RedirectResponse("/login", status_code=303)
 
     db = SessionLocal()
