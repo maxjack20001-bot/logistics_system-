@@ -177,6 +177,13 @@ def reset_admin():
 
     return {"message": "Admin reset successful"}
 
+# =========================================================
+# logout
+# =========================================================
+@app.get("/logout")
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=303)
 
 # =========================================================
 # HOME
