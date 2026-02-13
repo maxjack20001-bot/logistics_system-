@@ -194,10 +194,8 @@ def read_inventory(request: Request):
 
     # 🔒 Protect page
    if "user_id" not in request.session:
-
-        return RedirectResponse("/login", status_code=303)
-       
-    db = SessionLocal()
+       return RedirectResponse("/login", status_code=303)
+       db = SessionLocal()
 
     warehouses = db.query(Warehouse).all()
     items = db.query(Item).options(joinedload(Item.warehouse)).all()
