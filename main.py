@@ -126,6 +126,32 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 # ---------------------------------------------------------
 # CREATE / RESET ADMIN (ONLY FOR TESTING)
 # ---------------------------------------------------------
+  import os
+
+@app.get("/reset-admin")
+def reset_admin(db: Session = Depends(get_db)):
+    # Only allow reset if special secret key exists
+    reset_secret = os.getenv("RESET_ADMIN_SECRET")
+
+    if not reset_secret:
+        return {"error": "Admin reset is disabled in production."}
+
+    admin = db.query(User).filter(User.username == "admin").first()
+
+    if admin:
+        admin.password_hash = hash_password("1234")
+    else:
+        admin = User(
+            username="admin",
+            password_hash=hash_password("1234"),
+            role="admin"
+        )
+        db.add(admin)
+
+    db.commit()
+
+    return {"message": "Admin reset successful"}
+
 
 # =========================================================
 # HOME
