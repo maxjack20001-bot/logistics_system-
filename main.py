@@ -93,7 +93,7 @@ def register(email: str = Form(...), password: str = Form(...)):
     db.commit()
     db.close()
 
-    return {"message": "User created successfully"
+    return {"message": "User created successfully"}
 
 
 # ---------------------------------------------------------
