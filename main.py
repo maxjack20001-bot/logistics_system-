@@ -107,11 +107,11 @@ def login_page(request: Request):
 
 
 @app.post("/login", response_class=HTMLResponse)
-def login(request: Request, username: str = Form(...), password: str = Form(...)):
+def login(request: Request, email: str = Form(...), password: str = Form(...)):
 
     db = SessionLocal()
 
-    user = db.query(User).filter(User.email == username).first()
+    user = db.query(User).filter(User.email == email).first()
 
     if not user or not verify_password(password, user.password_hash):
         db.close()
@@ -121,34 +121,6 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         )
 
     request.session["user_id"] = user.id
-    db.close()
-
-    return RedirectResponse("/", status_code=303)
-
-
-# ---------------------------------------------------------
-# LOGIN ACTION
-# ---------------------------------------------------------
-@app.post("/login", response_class=HTMLResponse)
-def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    db = SessionLocal()
-    user = db.query(User).filter(User.username == username).first()
-
-    if not user:
-        db.close()
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "error": "Invalid username or password"}
-        )
-
-    if not verify_password(password, user.password_hash):
-        db.close()
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "error": "Invalid username or password"}
-        )
-
-    request.session["user"] = user.username
     db.close()
 
     return RedirectResponse("/", status_code=303)
