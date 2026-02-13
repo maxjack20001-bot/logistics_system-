@@ -36,6 +36,15 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(bind=engine)
+from sqlalchemy.orm import Session
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 # Create tablesfrom models import Base  # wherever your Base is defined
 from models import Base
@@ -141,10 +150,11 @@ def reset_admin(db: Session = Depends(get_db)):
         admin.password_hash = hash_password("1234")
     else:
         admin = User(
-            username="admin",
-            password_hash=hash_password("1234"),
-            role="admin"
-        )
+    username="admin",
+    password_hash=hash_password("1234"),
+    is_admin=1
+)
+
         db.add(admin)
 
     db.commit()
