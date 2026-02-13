@@ -126,7 +126,6 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 # ---------------------------------------------------------
 # CREATE / RESET ADMIN (ONLY FOR TESTING)
 # ---------------------------------------------------------
-  import os
 
 @app.get("/reset-admin")
 def reset_admin(db: Session = Depends(get_db)):
