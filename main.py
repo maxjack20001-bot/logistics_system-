@@ -16,12 +16,14 @@ import os
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
 from starlette.middleware.sessions import SessionMiddleware
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key="super-secret-key-change-this"
+    secret_key="your-secret-key"
 )
+
 
 
 # =========================================================
